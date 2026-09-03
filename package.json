@@ -1,0 +1,15 @@
+{
+  "name": "presensi-extension",
+  "version": "1.0.0",
+  "description": "Chrome extension to override geolocation on portal.university.edu",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "archiver": "^7.0.1",
+    "eslint": "^10.9.1",
+    "eslint-plugin-security": "^4.0.1",
+    "javascript-obfuscator": "^4.1.0"
+  }
+}
