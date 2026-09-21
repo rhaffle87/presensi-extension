@@ -18,6 +18,12 @@
 (function () {
   'use strict';
 
+  // Fast bail-out on private internal infrastructure IPs (e.g. Proxmox, router, NAS)
+  const host = window.location.hostname;
+  if (/^(?:10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)/.test(host)) {
+    return;
+  }
+
   // Phase 1: Native Function Caching
   const _addEventListener    = window.addEventListener.bind(window);
   const _removeEventListener = window.removeEventListener.bind(window);
@@ -32,16 +38,33 @@
   const _origWatchPosition      = _geoProto.watchPosition;
   const _origClearWatch         = _geoProto.clearWatch;
 
-  //  Phase 2: .toString() Cloaking 
+  // ── Phase 2: .toString() Cloaking ──────────────────────────────────────────
   const _origFnToString = Function.prototype.toString;
   const _nativeStringMap = new Map();
 
+  let _inToString = false;
   const _toStringProxy = new Proxy(_origFnToString, {
     apply(target, thisArg, args) {
-      if (_nativeStringMap.has(thisArg)) return _nativeStringMap.get(thisArg);
-      return Reflect.apply(target, thisArg, args);
+      if (thisArg === _toStringProxy || thisArg === _origFnToString) {
+        return 'function toString() { [native code] }';
+      }
+      if (_inToString) {
+        return Reflect.apply(target, thisArg, args);
+      }
+      _inToString = true;
+      try {
+        if (_nativeStringMap.has(thisArg)) {
+          return _nativeStringMap.get(thisArg);
+        }
+        return Reflect.apply(target, thisArg, args);
+      } finally {
+        _inToString = false;
+      }
     }
   });
+
+  _nativeStringMap.set(_toStringProxy, 'function toString() { [native code] }');
+  _nativeStringMap.set(_origFnToString, 'function toString() { [native code] }');
 
   try { Function.prototype.toString = _toStringProxy; } catch (_) {}
 
@@ -78,10 +101,32 @@
     return ACCURACY_PROFILES[key] || ACCURACY_PROFILES.mobile_gps;
   }
 
+  // Diagnostic whitelist for safe verification without breaking normal sites
+  const DIAGNOSTIC_DOMAINS = [
+    'browserleaks.com',
+    'html5demos.com',
+    'my-location.org',
+    'w3schools.com',
+    'where-am-i.org',
+    'localhost',
+    '127.0.0.1'
+  ];
+
+  function isDomainAllowed(hostname, targetDomain, testMode) {
+    if (testMode === true) return true;
+    if (!hostname) return false;
+    if (hostname === targetDomain) return true;
+    for (let i = 0; i < DIAGNOSTIC_DOMAINS.length; i++) {
+      const d = DIAGNOSTIC_DOMAINS[i];
+      if (hostname === d || hostname.endsWith('.' + d)) return true;
+    }
+    return false;
+  }
+
   function getSpoofConfig() {
     if (!currentConfig) return null;
     const targetDomain = currentConfig.targetDomain || atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1');
-    if (window.location.hostname !== targetDomain) return null;
+    if (!isDomainAllowed(window.location.hostname, targetDomain, currentConfig.testMode)) return null;
     if (currentConfig.enabled && currentConfig.lat !== null && currentConfig.lng !== null) {
       return currentConfig;
     }
@@ -223,6 +268,35 @@
     _geoProto.clearWatch         = clearWatchProxy;
   } catch (_) {}
 
+  // Permissions API cloaking (mocking query state to 'granted')
+  if (navigator.permissions && typeof navigator.permissions.query === 'function') {
+    const _origPermissionsQuery = navigator.permissions.query.bind(navigator.permissions);
+    const permissionsQueryProxy = new Proxy(_origPermissionsQuery, {
+      apply(target, thisArg, args) {
+        const [descriptor] = args;
+        if (descriptor && descriptor.name === 'geolocation' && getSpoofConfig()) {
+          const fakeStatus = {
+            state: 'granted',
+            name: 'geolocation',
+            onchange: null,
+            addEventListener: function() {},
+            removeEventListener: function() {},
+            dispatchEvent: function() { return true; }
+          };
+          if (typeof PermissionStatus !== 'undefined') {
+            Object.setPrototypeOf(fakeStatus, PermissionStatus.prototype);
+          }
+          return Promise.resolve(fakeStatus);
+        }
+        return Reflect.apply(target, thisArg, args);
+      }
+    });
+    _cloak(permissionsQueryProxy, 'function query() { [native code] }');
+    try {
+      navigator.permissions.query = permissionsQueryProxy;
+    } catch (_) {}
+  }
+
   // --- Device Spoofing (Navigator properties) ---
   function applyDeviceSpoofing(deviceMode) {
     if (!deviceMode || deviceMode === 'desktop') return;
@@ -361,11 +435,15 @@
 
   // Request the initial config, passing our secure session token as a primitive string
   // to avoid Firefox Xray wrapper object cloning issues.
-  // We retry every 10ms to ensure the background bridge has had time to load.
+  // Uses bounded retries with backoff to prevent infinite event loops.
+  let retries = 0;
+  const MAX_RETRIES = 8;
   function requestConfig() {
     if (configReceived) return;
+    if (retries >= MAX_RETRIES) return;
+    retries++;
     _dispatchEvent(new _CustomEvent(reqEvent, { detail: sessionToken }));
-    setTimeout(requestConfig, 10);
+    setTimeout(requestConfig, Math.min(15 * Math.pow(1.5, retries), 250));
   }
   requestConfig();
 

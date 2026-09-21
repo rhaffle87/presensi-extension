@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Attendance GPS Spoofer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Override geolocation to submit attendance with custom campus coordinates. Configurable for any portal.",
   "browser_specific_settings": {
     "gecko": {
@@ -28,6 +28,8 @@
   ],
   "host_permissions": [
     "<all_urls>",
+    "https://ipwho.is/*",
+    "https://ipapi.co/*",
     "https://ip-api.com/*"
   ],
   "action": {

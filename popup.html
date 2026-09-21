@@ -347,6 +347,76 @@
     }
     .toast.show { transform: translate(-50%, 0); opacity: 1; }
     .toast.error { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+
+    /* ── Diagnostics & Telemetry Card ── */
+    .diag-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 11px;
+    }
+    .diag-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .diag-row:last-child {
+      margin-bottom: 0;
+    }
+    .diag-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .diag-val {
+      font-weight: 600;
+      font-family: 'SF Mono', 'Geist Mono', monospace;
+      font-size: 10.5px;
+    }
+    .diag-val.ok {
+      color: var(--green);
+    }
+    .diag-val.warn {
+      color: var(--red);
+    }
+    .diag-advisory {
+      font-size: 10px;
+      color: var(--text-muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 8px;
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+    .diag-btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .diag-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .diag-btn:hover {
+      background: var(--bg);
+      border-color: var(--border-hover);
+    }
   </style>
 </head>
 <body>
@@ -479,13 +549,47 @@
 
 
     <!-- Accuracy Profile Selector -->
-    <div style="display:flex; align-items:center; justify-content:space-between; padding: 0 4px 8px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding: 0 4px 10px;">
       <label for="profileSelect" style="font-size:11px; color:var(--text-muted); letter-spacing:0.04em; text-transform:uppercase;">Device Profile</label>
       <select id="profileSelect" class="theme-select" aria-label="Accuracy Profile" style="font-size:11px;">
         <option value="mobile_gps">Mobile GPS (4-10m)</option>
         <option value="desktop">Desktop / IP (20-40m)</option>
         <option value="low_signal">Weak Signal (50-120m)</option>
       </select>
+    </div>
+
+    <!-- Diagnostic Health Card -->
+    <div class="diag-card">
+      <div class="diag-row">
+        <span class="diag-label">HTML5 GPS Hook</span>
+        <span class="diag-val ok" id="diagGpsStatus">ACTIVE (Ready)</span>
+      </div>
+      <div class="diag-row">
+        <span class="diag-label">Network IP / ISP</span>
+        <span class="diag-val" id="diagIpStatus">Checking IP...</span>
+      </div>
+      <div class="diag-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border);">
+        <label for="testModeToggle" class="diag-label" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+          <span>Test Mode (All Sites)</span>
+        </label>
+        <input type="checkbox" id="testModeToggle" style="cursor:pointer;" />
+      </div>
+      <div class="diag-advisory">
+        ⚡ <strong>Notice:</strong> Extension mocks <code>navigator.geolocation</code>. Network IP detection on sites like <em>iplocation.io</em> requires Campus VPN.
+      </div>
+    </div>
+
+    <!-- Quick Diagnostic Launchers -->
+    <div class="section-label" style="margin-top:4px;">Verify GPS Override</div>
+    <div class="diag-btn-grid">
+      <button class="diag-btn" id="btnTestBrowserleaks" type="button" title="Test HTML5 Geolocation API on BrowserLeaks">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        BrowserLeaks Geo
+      </button>
+      <button class="diag-btn" id="btnTestHtml5" type="button" title="Test HTML5 Geolocation API on HTML5 Demos">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        HTML5 Demos
+      </button>
     </div>
 
     <button id="vpnLinkBtn" class="preset-btn" style="width:100%; margin-bottom:12px; font-size:12px; padding:8px; display:flex; align-items:center; justify-content:center; gap:8px;" aria-label="Get VPN Config">
