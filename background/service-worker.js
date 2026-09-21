@@ -124,7 +124,7 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
 // --- Message routing between popup and content scripts ---
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
-
+  // ── Config fetch (popup / content) ─────────────────────────────────────────
   if (message.type === 'GET_CONFIG') {
     chrome.storage.local.get([K.enabled, K.lat, K.lng, K.domain, K.profile, K.deviceMode, K.testMode], (result) => {
       if (chrome.runtime.lastError) {
@@ -134,19 +134,87 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({
         success: true,
         config: {
-          enabled: result[K.enabled] === true,
-          lat:     result[K.lat]     || null,
-          lng:     result[K.lng]     || null,
-          domain:  result[K.domain]  || atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1'),
-          profile: result[K.profile] || 'mobile_gps',
+          enabled:    result[K.enabled]    === true,
+          lat:        result[K.lat]        || null,
+          lng:        result[K.lng]        || null,
+          domain:     result[K.domain]     || atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1'),
+          profile:    result[K.profile]    || 'mobile_gps',
           deviceMode: result[K.deviceMode] || 'desktop',
-          testMode: result[K.testMode] === true,
+          testMode:   result[K.testMode]   === true,
         }
       });
     });
     return true;
   }
 
+  // ── Submission telemetry: content.js → service worker ──────────────────────
+  if (message.type === 'PRESENSI_SUBMIT') {
+    const { lat, lng, profile, ts } = message;
+    const entry = { ts: ts || Date.now(), lat, lng, profile: profile || 'mobile_gps', status: 'pending' };
+
+    // Append to local log (max 50 entries, newest first)
+    chrome.storage.local.get([K.log], (res) => {
+      if (chrome.runtime.lastError) return;
+      const log = Array.isArray(res[K.log]) ? res[K.log] : [];
+      log.unshift(entry);
+      if (log.length > 50) log.length = 50;
+      const data = {};
+      data[K.log] = log;
+      chrome.storage.local.set(data);
+    });
+
+    // Fire a Chrome notification
+    try {
+      const latStr = parseFloat(lat).toFixed(4);
+      const lngStr = parseFloat(lng).toFixed(4);
+      const profileLabel = profile === 'mobile_gps' ? 'GPS' : profile === 'desktop' ? 'Desktop' : profile;
+      chrome.notifications.create({
+        type:    'basic',
+        iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+        title:   '✅ Presensi Submitted',
+        message: `${profileLabel} · ${latStr}, ${lngStr}`,
+        priority: 1
+      });
+    } catch (_) {}
+
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  // ── Result telemetry: accepted / rejected DOM detection ────────────────────
+  if (message.type === 'PRESENSI_RESULT') {
+    const { status, ts } = message; // status: 'accepted' | 'rejected'
+    // Update the most recent log entry's status
+    chrome.storage.local.get([K.log], (res) => {
+      if (chrome.runtime.lastError) return;
+      const log = Array.isArray(res[K.log]) ? res[K.log] : [];
+      if (log.length > 0) {
+        log[0].status = status;
+      } else {
+        // No prior PRESENSI_SUBMIT — create a synthetic entry
+        log.unshift({ ts: ts || Date.now(), lat: null, lng: null, profile: null, status });
+      }
+      const data = {};
+      data[K.log] = log;
+      chrome.storage.local.set(data);
+    });
+
+    // Update Chrome notification with result
+    try {
+      const icon  = status === 'accepted' ? '✅' : '❌';
+      const label = status === 'accepted' ? 'Presensi Diterima!' : 'Presensi Ditolak';
+      chrome.notifications.create({
+        type:    'basic',
+        iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+        title:   `${icon} ${label}`,
+        message: 'Lihat log di Options untuk detail.',
+        priority: 2
+      });
+    } catch (_) {}
+
+    sendResponse({ ok: true });
+    return true;
+  }
 
   return false;
 });

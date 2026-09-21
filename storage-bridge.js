@@ -100,8 +100,30 @@
     }
   }
 
+  // --- Telemetry Bridge (MAIN world -> Service Worker) ---
+  function handleTelemetry(e) {
+    try {
+      e.stopImmediatePropagation();
+    } catch (_) {}
+
+    if (!isContextValid()) {
+      try { window.removeEventListener('__gps_telemetry_msg', handleTelemetry, true); } catch (_) {}
+      return;
+    }
+
+    try {
+      const data = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail;
+      if (data && (data.type === 'PRESENSI_SUBMIT' || data.type === 'PRESENSI_RESULT')) {
+        chrome.runtime.sendMessage(data, () => {
+          void chrome.runtime.lastError;
+        });
+      }
+    } catch (_) {}
+  }
+
   try {
     window.addEventListener('__gps_sync_req', handleSyncReq, true);
+    window.addEventListener('__gps_telemetry_msg', handleTelemetry, true);
   } catch (_) {}
 
   try {
