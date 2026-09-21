@@ -192,16 +192,32 @@
     };
   }
 
-  //  Geolocation Proxy Hooks â”€
+  // ── Telemetry Helper (MAIN world -> storage-bridge.js) ───────────────────
+  function _sendSubmitTelemetry(lat, lng) {
+    try {
+      const payload = {
+        type:    'PRESENSI_SUBMIT',
+        lat:     String(lat),
+        lng:     String(lng),
+        profile: (currentConfig && currentConfig.profile) || 'mobile_gps',
+        ts:      Date.now()
+      };
+      _dispatchEvent(new _CustomEvent('__gps_telemetry_msg', { detail: JSON.stringify(payload) }));
+    } catch (_) {}
+  }
+
+  // ── Geolocation Proxy Hooks ────────────────────────────────────────────────
   const getCurrentPositionProxy = new Proxy(_origGetCurrentPosition, {
     apply(target, thisArg, argumentsList) {
       const cfg = getSpoofConfig();
       if (cfg) {
         const [successCallback] = argumentsList;
         _setTimeout(() => {
+          const pos = buildPosition(cfg.lat, cfg.lng);
           if (typeof successCallback === 'function') {
-            successCallback(buildPosition(cfg.lat, cfg.lng));
+            successCallback(pos);
           }
+          _sendSubmitTelemetry(pos.coords.latitude, pos.coords.longitude);
         }, getRealisticDelay());
       } else {
         return Reflect.apply(target, thisArg, argumentsList);
@@ -447,4 +463,105 @@
   }
   requestConfig();
 
+  // ── Phase 5: DOM Result Observer (accepted / rejected) ────────────────────
+  // Watches the portal's DOM for success/error feedback elements after a form submit.
+  // Selectors are based on common Indonesian university portal patterns (SweetAlert,
+  // Bootstrap alert, and generic toast/notification elements).
+  // If the portal changes its HTML, these selectors can be updated in options.
+  const TARGET_DOMAIN = atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1'); // portal.university.edu
+  if (window.location.hostname === TARGET_DOMAIN ||
+      window.location.hostname.endsWith('.' + TARGET_DOMAIN)) {
+
+    let _resultSent = false; // Deduplicate — only send once per page load
+
+    function _sendResultTelemetry(status) {
+      if (_resultSent) return;
+      _resultSent = true;
+      try {
+        const payload = {
+          type:   'PRESENSI_RESULT',
+          status,
+          ts:     Date.now()
+        };
+        _dispatchEvent(new _CustomEvent('__gps_telemetry_msg', { detail: JSON.stringify(payload) }));
+      } catch (_) {}
+    }
+
+    function _checkDomForResult(node) {
+      if (!node || !node.textContent) return;
+      const text = node.textContent.toLowerCase();
+      // Accepted signals (Indonesian + common portal strings)
+      if (
+        text.includes('berhasil') ||
+        text.includes('sukses') ||
+        text.includes('presensi anda telah') ||
+        text.includes('absensi berhasil') ||
+        text.includes('success') ||
+        text.includes('data tersimpan')
+      ) {
+        _sendResultTelemetry('accepted');
+        return;
+      }
+      // Rejected signals
+      if (
+        text.includes('gagal') ||
+        text.includes('tidak valid') ||
+        text.includes('tidak terdaftar') ||
+        text.includes('lokasi tidak') ||
+        text.includes('failed') ||
+        text.includes('error')
+      ) {
+        _sendResultTelemetry('rejected');
+      }
+    }
+
+    // Selector list covers SweetAlert2, Bootstrap alerts, and generic toast classes
+    const RESULT_SELECTORS = [
+      '.swal2-popup',
+      '.alert',
+      '.alert-success',
+      '.alert-danger',
+      '.toast',
+      '.notification',
+      '[role="alert"]',
+      '.modal-body',
+      '#swal2-html-container'
+    ].join(',');
+
+    const _observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType !== 1) continue; // Element nodes only
+          if (node.matches && node.matches(RESULT_SELECTORS)) {
+            _checkDomForResult(node);
+          }
+          // Also check descendants (e.g., SweetAlert injects children)
+          const matches = node.querySelectorAll && node.querySelectorAll(RESULT_SELECTORS);
+          if (matches) {
+            for (const el of matches) _checkDomForResult(el);
+          }
+        }
+        // Also watch text changes in existing result containers
+        if (
+          mutation.type === 'characterData' &&
+          mutation.target.parentElement &&
+          mutation.target.parentElement.matches &&
+          mutation.target.parentElement.matches(RESULT_SELECTORS)
+        ) {
+          _checkDomForResult(mutation.target.parentElement);
+        }
+      }
+    });
+
+    // Start observing once DOM is ready
+    if (document.body) {
+      _observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        _observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      }, { once: true });
+    }
+  }
+
 })();
+

@@ -100,14 +100,24 @@ async function renderSubmissionLog() {
   logList.textContent = '';
   log.forEach((entry) => {
     const row = document.createElement('div');
-    row.style.cssText = 'padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; font-family:monospace;';
+    row.style.cssText = 'padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; font-family:monospace; display:flex; gap:8px; align-items:center;';
 
-    const date = new Date(entry.ts).toLocaleString();
-    const lat  = parseFloat(entry.lat).toFixed(6);
-    const lng  = parseFloat(entry.lng).toFixed(6);
-    const prof = entry.profile || 'mobile_gps';
+    const date   = new Date(entry.ts).toLocaleString();
+    const lat    = entry.lat   ? parseFloat(entry.lat).toFixed(6)  : 'n/a';
+    const lng    = entry.lng   ? parseFloat(entry.lng).toFixed(6)  : 'n/a';
+    const prof   = entry.profile || 'mobile_gps';
+    const status = entry.status || 'pending';
+    const emoji  = status === 'accepted' ? '\u2705' : status === 'rejected' ? '\u274c' : '\u23f3';
 
-    row.textContent = `${date}  |  ${lat}, ${lng}  |  ${prof}`;
+    const badge = document.createElement('span');
+    badge.textContent = emoji;
+    badge.style.cssText = 'flex-shrink:0; font-size:14px;';
+    row.appendChild(badge);
+
+    const text = document.createElement('span');
+    text.textContent = `${date}  |  ${lat}, ${lng}  |  ${prof}`;
+    row.appendChild(text);
+
     logList.appendChild(row);
   });
 }
@@ -177,6 +187,19 @@ if (clearLogBtn) {
     await storageSet(data);
     renderSubmissionLog();
   });
+}
+
+// VPN Lock toggle — show/hide warning callout in real-time
+if (optVpnLock) {
+  const vpnWarning = document.getElementById('vpnLockWarning');
+  function _updateVpnWarning() {
+    if (vpnWarning) {
+      vpnWarning.style.display = optVpnLock.checked ? 'none' : 'block';
+    }
+  }
+  optVpnLock.addEventListener('change', _updateVpnWarning);
+  // Run once on load after optVpnLock value is set
+  document.addEventListener('DOMContentLoaded', () => setTimeout(_updateVpnWarning, 50));
 }
 
 document.addEventListener('DOMContentLoaded', loadOptions);

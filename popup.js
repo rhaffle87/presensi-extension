@@ -17,6 +17,7 @@ const optionsBtn     = document.getElementById('optionsBtn');
 const testModeToggle = document.getElementById('testModeToggle');
 const diagGpsStatus  = document.getElementById('diagGpsStatus');
 const diagIpStatus   = document.getElementById('diagIpStatus');
+const diagLastSubmit = document.getElementById('diagLastSubmit');
 const btnTestBrowserleaks = document.getElementById('btnTestBrowserleaks');
 const btnTestHtml5   = document.getElementById('btnTestHtml5');
 
@@ -193,7 +194,11 @@ async function checkIpOnEnable() {
       await storageSet({ [K.enabled]: false });
       enableToggle.checked = false;
       updateStatus(false, '', '');
-      showToast('SPOOF ABORTED: Not on Campus VPN! [BLOCKED]', true, 8000);
+      // Actionable toast — clicking it opens Options to the VPN Lock toggle
+      showToast('SPOOF ABORTED: Not on Campus VPN! Tap to open Options.', true, 10000, () => {
+        if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
+        else window.open(chrome.runtime.getURL('options/options.html'));
+      });
       return;
     }
 
@@ -488,6 +493,9 @@ async function loadSettings() {
     updateMap(lat, lng);
   }
 
+  // Render last submission in diagnostic card
+  renderLastSubmission();
+
   // Check IP in background on popup load
   checkIpOnEnable();
 }
@@ -524,6 +532,33 @@ if (btnTestHtml5) {
 }
 
 document.addEventListener('DOMContentLoaded', loadSettings);
+
+/**
+ * Reads the most recent submission log entry and renders it in the
+ * #diagLastSubmit diagnostic row with timestamp + status badge.
+ */
+async function renderLastSubmission() {
+  if (!diagLastSubmit) return;
+  const r   = await storageGet([K.log]);
+  const log = Array.isArray(r[K.log]) ? r[K.log] : [];
+  if (!log.length) {
+    diagLastSubmit.textContent = '—';
+    diagLastSubmit.className = 'diag-val';
+    return;
+  }
+  const entry   = log[0];
+  const date    = new Date(entry.ts);
+  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const status  = entry.status || 'pending';
+  const emoji   = status === 'accepted' ? '✅' : status === 'rejected' ? '❌' : '⏳';
+  diagLastSubmit.textContent = `${emoji} ${dateStr} ${timeStr}`;
+  diagLastSubmit.className = status === 'accepted'
+    ? 'diag-val ok'
+    : status === 'rejected'
+      ? 'diag-val warn'
+      : 'diag-val';
+}
 
 // ── Toggle ───────────────────────────────────────────
 enableToggle.addEventListener('change', async () => {
@@ -717,19 +752,22 @@ function updateStatus(enabled, lat, lng) {
 }
 
 let toastTimer = null;
+let _toastClickHandler = null;
+
 /**
  * Displays a non-blocking toast notification.
- * Safe DOM manipulation methods (createElementNS/createTextNode) are strictly used 
+ * Safe DOM manipulation methods (createElementNS/createTextNode) are strictly used
  * instead of innerHTML to mitigate any Cross-Site Scripting (XSS) risks.
  *
  * @param {string} msg - The message to display
  * @param {boolean} isError - If true, displays as an error alert
  * @param {number} duration - Time in ms to show toast
+ * @param {Function|null} onClick - Optional click handler (makes toast actionable)
  */
-function showToast(msg, isError = false, duration = 2800) {
+function showToast(msg, isError = false, duration = 2800, onClick = null) {
   // Use safe DOM manipulation to prevent XSS
   toastText.textContent = ''; // clear existing content
-  
+
   if (isError) {
     toastText.textContent = msg;
   } else {
@@ -744,14 +782,31 @@ function showToast(msg, isError = false, duration = 2800) {
     svg.setAttribute("stroke-width", "3");
     svg.setAttribute("stroke-linecap", "round");
     svg.setAttribute("stroke-linejoin", "round");
-    
+
     const polyline = document.createElementNS(svgNS, "polyline");
     polyline.setAttribute("points", "20 6 9 17 4 12");
     svg.appendChild(polyline);
-    
+
     toastText.appendChild(svg);
     const textNode = document.createTextNode(' ' + msg);
     toastText.appendChild(textNode);
+  }
+
+  // Detach any previous click handler before attaching a new one
+  if (_toastClickHandler) {
+    toast.removeEventListener('click', _toastClickHandler);
+    _toastClickHandler = null;
+  }
+
+  if (typeof onClick === 'function') {
+    toast.style.cursor = 'pointer';
+    _toastClickHandler = () => {
+      onClick();
+      toast.classList.remove('show');
+    };
+    toast.addEventListener('click', _toastClickHandler, { once: true });
+  } else {
+    toast.style.cursor = '';
   }
 
   toast.className   = 'toast' + (isError ? ' error' : '');

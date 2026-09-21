@@ -22,3 +22,6 @@ yarn-error.log*
 # Private Dev Docs
 ui_components.md
 vulnerables.md
+
+# CRX signing key (NEVER commit this)
+key.pem

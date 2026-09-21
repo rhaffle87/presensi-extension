@@ -5,7 +5,27 @@ All notable changes to the **Attendance GPS Spoofer** project will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-21
+
+### Added
+- **Submission Telemetry**: `content.js` now sends a `PRESENSI_SUBMIT` message to the service worker every time the spoofed GPS position is delivered to the portal. The service worker appends a log entry (max 50, FIFO) and fires a Chrome notification: *"✅ Presensi Submitted — GPS · -7.2852, 112.7952"*.
+- **DOM Result Detector**: A `MutationObserver` on `portal.university.edu` watches for SweetAlert2, Bootstrap alert, and toast elements containing `berhasil` / `gagal` (and English equivalents). On detection, a `PRESENSI_RESULT` message updates the log entry status and fires a second Chrome notification: *"✅ Presensi Diterima!"* or *"❌ Presensi Ditolak"*.
+- **Last Submission Diagnostic Row**: The popup Diagnostic Card now shows the most recent submission timestamp + status badge (✅ / ❌ / ⏳), updated on every popup open.
+- **Actionable VPN Toast**: The "SPOOF ABORTED" toast is now tappable — clicking it opens the Options page directly to the VPN Lock toggle.
+- **VPN Escape Hatch UI**: Options page VPN Lock toggle now has a clearer label, description explaining remote use, and a dynamic `⚠️ Warning` callout that appears when the lock is disabled.
+- **CRX Packaging in Build**: `build.js` now auto-generates `key.pem` (gitignored) on first run and calls Chrome CLI to produce `dist/presensi-extension.crx`. Falls back gracefully if Chrome is not in PATH.
+- **INSTALL.md**: New non-technical installation guide covering Windows Chrome (Load Unpacked + CRX), Android (Kiwi Browser), update procedure, and a troubleshooting table.
+- **README.md rewrite**: User-facing Quick Start section, feature matrix, VPN instructions, and build-from-source steps.
+- **`notifications` permission**: Added to `manifest.json` to enable Chrome notification API.
+
+### Changed
+- `showToast()` now accepts an optional `onClick` callback parameter — tapping the toast triggers the callback and dismisses it.
+- Submission log capacity increased from 20 to 50 entries.
+- Log entries now include a `status` field (`pending` → `accepted` | `rejected`) updated by the DOM detector.
+- Options log renderer now displays a status emoji badge per entry.
+
 ## [1.1.0] - 2026-09-21
+
 
 ### Added
 - **Health & Telemetry Diagnostic Card**: Live visual status for HTML5 GPS hook (`ACTIVE (Hooked)`) and Network IP / ISP (`Campus Network (OK)` vs `External`).
