@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Submission Telemetry**: `content.js` now sends a `PRESENSI_SUBMIT` message to the service worker every time the spoofed GPS position is delivered to the portal. The service worker appends a log entry (max 50, FIFO) and fires a Chrome notification: *"✅ Presensi Submitted — GPS · -7.2852, 112.7952"*.
-- **DOM Result Detector**: A `MutationObserver` on `portal.university.edu` watches for SweetAlert2, Bootstrap alert, and toast elements containing `berhasil` / `gagal` (and English equivalents). On detection, a `PRESENSI_RESULT` message updates the log entry status and fires a second Chrome notification: *"✅ Presensi Diterima!"* or *"❌ Presensi Ditolak"*.
+- **DOM Result Detector**: A `MutationObserver` on the target attendance portal watches for SweetAlert2, Bootstrap alert, and toast elements containing `berhasil` / `gagal` (and English equivalents). On detection, a `PRESENSI_RESULT` message updates the log entry status and fires a second Chrome notification: *"✅ Presensi Diterima!"* or *"❌ Presensi Ditolak"*.
 - **Last Submission Diagnostic Row**: The popup Diagnostic Card now shows the most recent submission timestamp + status badge (✅ / ❌ / ⏳), updated on every popup open.
 - **Actionable VPN Toast**: The "SPOOF ABORTED" toast is now tappable — clicking it opens the Options page directly to the VPN Lock toggle.
 - **VPN Escape Hatch UI**: Options page VPN Lock toggle now has a clearer label, description explaining remote use, and a dynamic `⚠️ Warning` callout that appears when the lock is disabled.
@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Extension Context Invalidation**: Hardened `storage-bridge.js` with `isContextValid()` guards, automatic listener detachment, and safety try-catch wrappers.
 - **Private Subnet Bail-out**: Fast bail-out on private IP ranges (`10.x.x.x`, `192.168.x.x`, `172.16-31.x.x`) to prevent interfering with local servers (e.g. Proxmox).
-- **Stack Overflow (`RangeError: Maximum call stack size exceeded`)**: Added re-entrancy protection to `Function.prototype.toString` proxy and removed conflicting `selfDefending`/`debugProtection` options from `build.js` that previously froze Next.js on `portal.university.edu`.
+- **Stack Overflow (`RangeError: Maximum call stack size exceeded`)**: Added re-entrancy protection to `Function.prototype.toString` proxy and removed conflicting `selfDefending`/`debugProtection` options from `build.js` that previously froze Next.js on dynamic single-page portals.
 
 ## [1.0.0] - 2026-09-02
 

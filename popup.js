@@ -164,18 +164,15 @@ async function checkIpOnEnable() {
     const r = await storageGet([K.vpnLock]);
     const isStrict = r[K.vpnLock] === true; // only strict if explicitly enabled
 
-    // Check if connected to Campus Network
-    const itsIdent = atob('dW5pdmVyc2l0eSBjYW1wdXM='); // "campus network"
-    const isItsNetwork = Boolean(
-      (isp && isp.toLowerCase().includes(itsIdent)) || 
-      (org && org.toLowerCase().includes(itsIdent)) ||
-      (domain && domain.toLowerCase().includes('portal.university.edu')) ||
-      (isp && isp.toLowerCase().includes('its')) ||
-      (org && org.toLowerCase().includes('its'))
+    // Check if connected to Campus Network / VPN
+    const isCampusNetwork = Boolean(
+      (isp && (isp.toLowerCase().includes('campus') || isp.toLowerCase().includes('university') || isp.toLowerCase().includes('eduroam'))) ||
+      (org && (org.toLowerCase().includes('campus') || org.toLowerCase().includes('university') || org.toLowerCase().includes('eduroam'))) ||
+      (domain && (domain.toLowerCase().includes('.edu') || domain.toLowerCase().includes('.ac.')))
     );
                           
     if (diagIpStatus) {
-      if (isItsNetwork) {
+      if (isCampusNetwork) {
         diagIpStatus.textContent = 'Campus Network (OK)';
         diagIpStatus.className = 'diag-val ok';
       } else if (isp || city) {
@@ -189,7 +186,7 @@ async function checkIpOnEnable() {
       }
     }
 
-    if (isStrict && !isItsNetwork && (isp || org)) {
+    if (isStrict && !isCampusNetwork && (isp || org)) {
       // Abort spoofing only if strict VPN lock is turned on
       await storageSet({ [K.enabled]: false });
       enableToggle.checked = false;
@@ -202,8 +199,8 @@ async function checkIpOnEnable() {
       return;
     }
 
-    if (isItsNetwork) {
-      showToast(`Campus Network Verified (Campus)`, false, 3500);
+    if (isCampusNetwork) {
+      showToast(`Campus Network Verified`, false, 3500);
     } else if (city || region) {
       showToast(`IP location: ${city}, ${region} — use VPN if remote`, false, 5000);
     }

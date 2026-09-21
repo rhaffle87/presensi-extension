@@ -1,19 +1,19 @@
 # Attendance GPS Spoofer — v1.2.0
 
-> Override `navigator.geolocation` on `portal.university.edu` to submit presensi with Campus campus coordinates.
+> Override `navigator.geolocation` on university attendance portals with configurable campus coordinates.
 
 ---
 
-## Quick Start (Students)
+## Quick Start
 
 1. **Download** → [release.zip on GitHub Releases](../../releases/latest)
 2. **Extract** the zip to any folder
 3. Open **Chrome** → `chrome://extensions`
 4. Enable **Developer mode** (top-right toggle)
 5. Click **Load unpacked** → select the extracted folder
-6. Pin the extension icon 📌 → click it → select **Tower 2** → toggle ON → open `portal.university.edu`
+6. Pin the extension icon 📌 → click it → select a campus preset → toggle ON → open your attendance portal
 
-Done. Your presensi will see you at Tower 2, Main Campus.
+Done. Your portal will receive your chosen campus coordinates.
 
 ---
 
@@ -36,7 +36,7 @@ See **[INSTALL.md](INSTALL.md)** for detailed screenshots and Android (Kiwi Brow
 - **Sensor fusion** — DeviceMotion / DeviceOrientation spoofed to match GPS
 - **Velocity limiter** — Haversine check warns if location jump would trigger backend flags
 - **Submission telemetry** — Chrome notification on each presensi call + local log (50 entries)
-- **DOM result detector** — Detects `berhasil` / `gagal` portal responses → updates log status
+- **DOM result detector** — Detects success / failure portal responses → updates log status
 - **VPN Lock** — Blocks spoofing outside campus network by default (escape hatch in Options)
 - **Device profiles** — Mobile GPS, Desktop IP, Weak Signal accuracy profiles
 - **Kill switch** — `Alt+Shift+X` wipes all extension data instantly
@@ -48,12 +48,10 @@ See **[INSTALL.md](INSTALL.md)** for detailed screenshots and Android (Kiwi Brow
 The extension checks your public IP when you enable spoofing:
 
 - **On Campus Wi-Fi / Eduroam** → works automatically
-- **Off-campus + Campus VPN** → works (VPN routes traffic through Campus network)
-- **Off-campus without VPN** → blocked by default (opens Options when you tap the toast)
+- **Off-campus + Campus VPN** → works (VPN routes traffic through campus network)
+- **Off-campus without VPN** → blocked by default if Network Lock is ON (opens Options when you tap the toast)
 
 To allow spoofing from any network, go to **Options → VPN / Campus Network Lock → uncheck**.
-
-Get the Campus VPN config: [portal.university.edu](https://portal.university.edu/internet/connectvpn.php)
 
 ---
 

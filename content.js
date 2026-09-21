@@ -468,7 +468,7 @@
   // Selectors are based on common Indonesian university portal patterns (SweetAlert,
   // Bootstrap alert, and generic toast/notification elements).
   // If the portal changes its HTML, these selectors can be updated in options.
-  const TARGET_DOMAIN = atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1'); // portal.university.edu
+  const TARGET_DOMAIN = (currentConfig && currentConfig.targetDomain) || atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1');
   if (window.location.hostname === TARGET_DOMAIN ||
       window.location.hostname.endsWith('.' + TARGET_DOMAIN)) {
 

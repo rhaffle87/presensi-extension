@@ -32,10 +32,10 @@ Right-click `release.zip` → **Extract All** → choose a permanent folder (e.g
 **Step 5 — Use it**
 
 1. Click the extension icon → popup opens
-2. Click **Tower 2** (or your class location)
+2. Click **Tower 2** (or your class location preset)
 3. Toggle the switch to **ON**
-4. Open `https://portal.university.edu/presensi/`
-5. Submit your presensi normally — the portal will see Tower 2 GPS coordinates
+4. Open your university attendance portal (e.g. `https://portal.university.edu/attendance/`)
+5. Submit your attendance normally — the portal will receive your chosen campus GPS coordinates
 
 ---
 
@@ -62,7 +62,7 @@ Right-click `release.zip` → **Extract All** → choose a permanent folder (e.g
 6. Tap **Load unpacked (+)** → navigate to the extracted folder → select it
 7. The extension is now active in Kiwi Browser
 
-> Note: Open `portal.university.edu` in Kiwi Browser (not your default browser) for the spoof to work.
+> Note: Open your attendance portal in Kiwi Browser (not your default browser) for the spoof to work.
 
 ---
 
@@ -83,8 +83,8 @@ When a new version is released:
 | "This extension is not from Chrome Web Store" dialog | Click **Keep** — this is expected for Load Unpacked |
 | Extension disappears after Chrome update | Re-enable Developer mode and reload the extension |
 | Popup shows "Checking IP…" forever | Check your internet connection; try disabling other extensions temporarily |
-| Presensi still shows real location | Hard-refresh the page (`Ctrl+Shift+R`) after enabling the toggle |
-| "SPOOF ABORTED: Not on Campus VPN" | Connect to Campus Wi-Fi or OpenVPN, or turn off VPN Lock in Options |
+| Attendance still shows real location | Hard-refresh the page (`Ctrl+Shift+R`) after enabling the toggle |
+| "SPOOF ABORTED: Not on Campus VPN" | Connect to Campus Wi-Fi or VPN, or turn off VPN Lock in Options |
 | Chrome notification not showing | Go to `chrome://settings/content/notifications` → allow extension notifications |
 
 ---
