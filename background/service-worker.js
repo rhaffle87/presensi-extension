@@ -21,11 +21,12 @@ const K = {
   log:     'cfg_sl',
   vpnLock: 'cfg_vl',
   deviceMode: 'cfg_dm',
+  testMode: 'cfg_tm',
 };
 
 
 // --- Extension initialization ---
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     const defaults = {};
     defaults[K.enabled] = false;
@@ -35,8 +36,38 @@ chrome.runtime.onInstalled.addListener((details) => {
     defaults[K.profile] = 'mobile_gps';
     defaults[K.vpnLock] = true;
     defaults[K.deviceMode] = 'desktop';
+    defaults[K.testMode] = false;
     chrome.storage.local.set(defaults);
   }
+
+  // Retroactively inject content scripts only into target portal & diagnostic tabs upon install/reload
+  try {
+    const targetDomain = atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1');
+    const relevantPatterns = [
+      `*://${targetDomain}/*`,
+      `*://*.${targetDomain}/*`,
+      '*://browserleaks.com/*',
+      '*://*.browserleaks.com/*',
+      '*://html5demos.com/*',
+      '*://my-location.org/*',
+      '*://localhost/*',
+      '*://127.0.0.1/*'
+    ];
+    const tabs = await chrome.tabs.query({ url: relevantPatterns });
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js'],
+        world: 'MAIN'
+      }).catch(() => {});
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['compat.js', 'storage-bridge.js'],
+        world: 'ISOLATED'
+      }).catch(() => {});
+    }
+  } catch (_) {}
 });
 
 // --- Device/User-Agent Spoofing (declarativeNetRequest) ---
@@ -95,7 +126,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 
   if (message.type === 'GET_CONFIG') {
-    chrome.storage.local.get([K.enabled, K.lat, K.lng, K.domain, K.profile, K.deviceMode], (result) => {
+    chrome.storage.local.get([K.enabled, K.lat, K.lng, K.domain, K.profile, K.deviceMode, K.testMode], (result) => {
       if (chrome.runtime.lastError) {
         sendResponse({ success: false, error: chrome.runtime.lastError.message });
         return;
@@ -109,6 +140,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           domain:  result[K.domain]  || atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1'),
           profile: result[K.profile] || 'mobile_gps',
           deviceMode: result[K.deviceMode] || 'desktop',
+          testMode: result[K.testMode] === true,
         }
       });
     });

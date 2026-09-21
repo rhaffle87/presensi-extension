@@ -32,60 +32,52 @@ async function build() {
   }
   fs.mkdirSync(OUT_DIR);
 
-  // 2. Obfuscate content.js (The most sensitive script dealing with anti-cheat)
+  // 2. Obfuscate content.js (Stealthy signature masking without breaking browser runtime)
   console.log('Obfuscating content.js...');
   const contentJsRaw = fs.readFileSync(path.join(__dirname, 'content.js'), 'utf8');
   const obfuscatedResult = JavaScriptObfuscator.obfuscate(contentJsRaw, {
     compact: true,
-    controlFlowFlattening: true,
-    controlFlowFlatteningThreshold: 0.75,
-    deadCodeInjection: true,
-    deadCodeInjectionThreshold: 0.4,
-    debugProtection: true, // Prevents DevTools opening (stealth)
-    debugProtectionInterval: 0,
-    disableConsoleOutput: true,
+    controlFlowFlattening: false,
+    deadCodeInjection: false,
+    debugProtection: false, // Must be false to allow DevTools without infinite recursion
+    disableConsoleOutput: false, // Must be false to not break host site console/frameworks
     identifierNamesGenerator: 'hexadecimal',
     log: false,
-    numbersToExpressions: true,
+    numbersToExpressions: false,
     renameGlobals: false,
-    selfDefending: true,
+    selfDefending: false, // Must be false: selfDefending conflicts with Function.prototype.toString proxy
     simplify: true,
     splitStrings: true,
     splitStringsChunkLength: 10,
     stringArray: true,
-    stringArrayCallsTransform: true,
-    stringArrayCallsTransformThreshold: 0.5,
     stringArrayEncoding: ['base64'],
     stringArrayIndexShift: true,
     stringArrayRotate: true,
     stringArrayShuffle: true,
-    stringArrayWrappersCount: 1,
-    stringArrayWrappersChainedCalls: true,
-    stringArrayWrappersParametersMaxCount: 2,
-    stringArrayWrappersType: 'variable',
     stringArrayThreshold: 0.75,
     unicodeEscapeSequence: false
   });
   
   fs.writeFileSync(path.join(OUT_DIR, 'content.js'), obfuscatedResult.getObfuscatedCode());
 
-  // 2.5. Obfuscate popup.js (Less aggressive to avoid breaking Chrome Extension UI APIs)
+  // 2.5. Obfuscate popup.js (Safe UI obfuscation)
   console.log('Obfuscating popup.js...');
   const popupJsRaw = fs.readFileSync(path.join(__dirname, 'popup.js'), 'utf8');
   const obfuscatedPopup = JavaScriptObfuscator.obfuscate(popupJsRaw, {
     compact: true,
-    controlFlowFlattening: false, // Too heavy for UI
-    deadCodeInjection: false,     // Too heavy for UI
-    debugProtection: false,       // Will break extension popup
-    disableConsoleOutput: true,
+    controlFlowFlattening: false,
+    deadCodeInjection: false,
+    debugProtection: false,
+    disableConsoleOutput: false,
     identifierNamesGenerator: 'hexadecimal',
     log: false,
-    numbersToExpressions: true,
+    numbersToExpressions: false,
     renameGlobals: false,
+    selfDefending: false,
     simplify: true,
     stringArray: true,
     stringArrayEncoding: ['base64'],
-    stringArrayWrappersType: 'variable',
+    stringArrayThreshold: 0.75,
     unicodeEscapeSequence: false
   });
   

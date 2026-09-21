@@ -14,6 +14,11 @@ const presetBtns     = document.querySelectorAll('.preset-btn:not(#preset-myloc)
 const myLocBtn       = document.getElementById('preset-myloc');
 const themeSelect    = document.getElementById('themeSelect');
 const optionsBtn     = document.getElementById('optionsBtn');
+const testModeToggle = document.getElementById('testModeToggle');
+const diagGpsStatus  = document.getElementById('diagGpsStatus');
+const diagIpStatus   = document.getElementById('diagIpStatus');
+const btnTestBrowserleaks = document.getElementById('btnTestBrowserleaks');
+const btnTestHtml5   = document.getElementById('btnTestHtml5');
 
 // ── Campus presets (Main Campus) ─────────────────────────────────────
 const PRESETS = {
@@ -36,6 +41,7 @@ const K = {
   log:     'cfg_sl',
   vpnLock: 'cfg_vl',
   deviceMode: 'cfg_dm',
+  testMode: 'cfg_tm',
 };
 
 // ── Velocity / Impossible Travel Limiter ───────────────────────────────
@@ -106,29 +112,84 @@ function gaussianJitter(deg) {
 }
 
 /**
- * Checks the user's public IP geolocation.
- * If vpnLock is true, enforces that the ISP matches Campus Network.
- * Uses ip-api.com (free, no key).
+ * Checks the user's public IP geolocation via HTTPS.
+ * Enforces Campus Network check if vpnLock is enabled.
+ * Uses ipwho.is (free HTTPS, no API key required, provides ASN & organization).
  */
 async function checkIpOnEnable() {
+  if (diagIpStatus) {
+    diagIpStatus.textContent = 'Checking IP...';
+    diagIpStatus.className = 'diag-val';
+  }
+
   try {
-    const res  = await fetch('https://ip-api.com/json/?fields=city,regionName,countryCode,isp,org');
-    if (!res.ok) return;
-    const data = await res.json();
-    const city = data.city || '?';
-    const region = data.regionName || '?';
-    const isp = data.isp || '';
-    const org = data.org || '';
-    
+    let isp = '';
+    let org = '';
+    let city = '';
+    let region = '';
+    let domain = '';
+
+    // Primary: ipwho.is over HTTPS
+    try {
+      const res = await fetch('https://ipwho.is/');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success !== false) {
+          city = data.city || '';
+          region = data.region || '';
+          if (data.connection) {
+            isp = data.connection.isp || '';
+            org = data.connection.org || '';
+            domain = data.connection.domain || '';
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Fallback: ipapi.co over HTTPS
+    if (!isp && !org) {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (res.ok) {
+          const data = await res.json();
+          city = data.city || '';
+          region = data.region_name || '';
+          isp = data.org || '';
+          org = data.org || '';
+        }
+      } catch (_) {}
+    }
+
     const r = await storageGet([K.vpnLock]);
-    const isStrict = r[K.vpnLock] !== false; // default true
-    
-    // Check if connected to Campus network
-    const isItsNetwork = isp.toLowerCase().includes(atob('dW5pdmVyc2l0eSBjYW1wdXM=')) || 
-                         org.toLowerCase().includes(atob('dW5pdmVyc2l0eSBjYW1wdXM='));
-                         
-    if (isStrict && !isItsNetwork) {
-      // Abort spoofing!
+    const isStrict = r[K.vpnLock] === true; // only strict if explicitly enabled
+
+    // Check if connected to Campus Network
+    const itsIdent = atob('dW5pdmVyc2l0eSBjYW1wdXM='); // "campus network"
+    const isItsNetwork = Boolean(
+      (isp && isp.toLowerCase().includes(itsIdent)) || 
+      (org && org.toLowerCase().includes(itsIdent)) ||
+      (domain && domain.toLowerCase().includes('portal.university.edu')) ||
+      (isp && isp.toLowerCase().includes('its')) ||
+      (org && org.toLowerCase().includes('its'))
+    );
+                          
+    if (diagIpStatus) {
+      if (isItsNetwork) {
+        diagIpStatus.textContent = 'Campus Network (OK)';
+        diagIpStatus.className = 'diag-val ok';
+      } else if (isp || city) {
+        const display = isp || city;
+        const shortIsp = display.length > 16 ? display.slice(0, 14) + '..' : display;
+        diagIpStatus.textContent = `${shortIsp} (External)`;
+        diagIpStatus.className = 'diag-val warn';
+      } else {
+        diagIpStatus.textContent = 'Network Active';
+        diagIpStatus.className = 'diag-val ok';
+      }
+    }
+
+    if (isStrict && !isItsNetwork && (isp || org)) {
+      // Abort spoofing only if strict VPN lock is turned on
       await storageSet({ [K.enabled]: false });
       enableToggle.checked = false;
       updateStatus(false, '', '');
@@ -137,11 +198,16 @@ async function checkIpOnEnable() {
     }
 
     if (isItsNetwork) {
-      showToast(`IP location: Campus Network (Verified)`, false, 4000);
-    } else {
-      showToast(`IP location: ${city}, ${region} — use VPN if remote`, false, 6000);
+      showToast(`Campus Network Verified (Campus)`, false, 3500);
+    } else if (city || region) {
+      showToast(`IP location: ${city}, ${region} — use VPN if remote`, false, 5000);
     }
-  } catch (_) { /* non-blocking, fail silently */ }
+  } catch (_) {
+    if (diagIpStatus) {
+      diagIpStatus.textContent = 'Network Active';
+      diagIpStatus.className = 'diag-val';
+    }
+  }
 }
 
 /**
@@ -250,7 +316,7 @@ function detectActivePreset(lat, lng) {
   clearActivePreset();
 }
 
-// Preset button click
+// Preset button click (Auto-saves so selection applies immediately)
 presetBtns.forEach(btn => {
   btn.addEventListener('click', async () => {
     const lat = btn.dataset.lat;
@@ -265,6 +331,21 @@ presetBtns.forEach(btn => {
     activatePreset(btn.id);
     flashInputs();
     updateMap(lat, lng);
+
+    try {
+      const enabled = enableToggle.checked;
+      const data = {};
+      data[K.lat] = lat;
+      data[K.lng] = lng;
+      data[K.prevLat] = String(gaussianJitter(parseFloat(lat)));
+      data[K.prevLng] = String(gaussianJitter(parseFloat(lng)));
+      data[K.prevTs] = Date.now();
+      await storageSet(data);
+      updateStatus(enabled, lat, lng);
+
+      const presetName = btn.querySelector('.preset-name')?.textContent || 'Preset';
+      showToast(`${presetName} selected & applied! Klik 'Coba Lagi' di presensi.`);
+    } catch (_) {}
   });
 });
 
@@ -380,19 +461,21 @@ function storageSet(data) {
 
 // ── Load saved settings ──────────────────────────────
 async function loadSettings() {
-  const r = await storageGet([K.enabled, K.lat, K.lng, K.theme, K.profile]);
+  const r = await storageGet([K.enabled, K.lat, K.lng, K.theme, K.profile, K.testMode]);
 
   const enabled  = r[K.enabled] === true;
   const lat      = r[K.lat]     || '';
   const lng      = r[K.lng]     || '';
   const theme    = r[K.theme]   || 'system';
   const profile  = r[K.profile] || 'mobile_gps';
+  const testMode = r[K.testMode] === true;
 
   document.documentElement.setAttribute('data-theme', theme);
   themeSelect.value    = theme;
   enableToggle.checked = enabled;
   latInput.value       = lat;
   lngInput.value       = lng;
+  if (testModeToggle) testModeToggle.checked = testMode;
 
   // Sync accuracy profile selector if it exists
   const profileSelect = document.getElementById('profileSelect');
@@ -404,6 +487,40 @@ async function loadSettings() {
   if (isValidCoord(lat) && isValidCoord(lng)) {
     updateMap(lat, lng);
   }
+
+  // Check IP in background on popup load
+  checkIpOnEnable();
+}
+
+// ── Test Mode & Diagnostic Launcher Listeners ────────
+if (testModeToggle) {
+  testModeToggle.addEventListener('change', async () => {
+    const isTest = testModeToggle.checked;
+    await storageSet({ [K.testMode]: isTest });
+    showToast(isTest ? 'Test Mode: Active on all sites' : 'Test Mode: Target domain only');
+  });
+}
+
+if (btnTestBrowserleaks) {
+  btnTestBrowserleaks.addEventListener('click', () => {
+    const url = 'https://browserleaks.com/geo';
+    if (chrome.tabs && chrome.tabs.create) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open(url, '_blank');
+    }
+  });
+}
+
+if (btnTestHtml5) {
+  btnTestHtml5.addEventListener('click', () => {
+    const url = 'https://html5demos.com/geo';
+    if (chrome.tabs && chrome.tabs.create) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open(url, '_blank');
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', loadSettings);
@@ -425,7 +542,8 @@ enableToggle.addEventListener('change', async () => {
     data[K.enabled] = enabled;
     await storageSet(data);
     updateStatus(enabled, lat, lng);
-    showToast(enabled ? 'Spoof activated' : 'Spoof disabled');
+    const reloaded = await reloadActiveTabIfApplicable();
+    showToast(enabled ? (reloaded ? 'Spoof active & refreshed' : 'Spoof activated') : 'Spoof disabled');
     // Non-blocking IP check warning when enabling
     if (enabled) checkIpOnEnable();
   } catch (err) {
@@ -433,6 +551,20 @@ enableToggle.addEventListener('change', async () => {
     enableToggle.checked = !enabled;
   }
 });
+
+// Helper to auto-refresh active web page so new mock GPS takes effect without manual F5
+async function reloadActiveTabIfApplicable() {
+  try {
+    if (chrome.tabs && chrome.tabs.query) {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.id && tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')) {
+        chrome.tabs.reload(tab.id);
+        return true;
+      }
+    }
+  } catch (_) {}
+  return false;
+}
 
 // ── Save button ──────────────────────────────────────
 saveBtn.addEventListener('click', async () => {
@@ -478,7 +610,10 @@ saveBtn.addEventListener('click', async () => {
 
     updateStatus(enabled, lat, lng);
     updateMap(lat, lng);
-    showToast(enabled ? 'Spoof activated' : 'Coordinates updated');
+
+    // Auto-reload active page so the target portal immediately consumes the new coordinates
+    const reloaded = await reloadActiveTabIfApplicable();
+    showToast(reloaded ? 'Applied & tab refreshed!' : (enabled ? 'Spoof activated' : 'Coordinates updated'));
 
     // Append to submission log (non-blocking)
     appendLog({ ts: Date.now(), lat, lng, profile }).catch(() => {});
@@ -568,6 +703,16 @@ function updateStatus(enabled, lat, lng) {
     statusDot.classList.remove('active');
     statusText.textContent = enabled ? 'Active (no coords set)' : 'Inactive';
     statusText.className   = 'status-text inactive';
+  }
+
+  if (diagGpsStatus) {
+    if (enabled && isValidCoord(lat) && isValidCoord(lng)) {
+      diagGpsStatus.textContent = 'ACTIVE (Hooked)';
+      diagGpsStatus.className = 'diag-val ok';
+    } else {
+      diagGpsStatus.textContent = enabled ? 'ACTIVE (No Coords)' : 'INACTIVE (Off)';
+      diagGpsStatus.className = enabled ? 'diag-val ok' : 'diag-val warn';
+    }
   }
 }
 
