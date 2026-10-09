@@ -20,12 +20,63 @@ const diagIpStatus   = document.getElementById('diagIpStatus');
 const diagLastSubmit = document.getElementById('diagLastSubmit');
 const btnTestBrowserleaks = document.getElementById('btnTestBrowserleaks');
 const btnTestHtml5   = document.getElementById('btnTestHtml5');
+const inlineAlert    = document.getElementById('inlineAlert');
+const inlineAlertText = document.getElementById('inlineAlertText');
+const inlineAlertDismiss = document.getElementById('inlineAlertDismiss');
+const peerClassInput  = document.getElementById('peerClassInput');
+const peerCodeInput   = document.getElementById('peerCodeInput');
+const btnSharePeerCode = document.getElementById('btnSharePeerCode');
+const btnFetchPeerCodes = document.getElementById('btnFetchPeerCodes');
+const peerFeedList    = document.getElementById('peerFeedList');
 
-// ── Campus presets (Main Campus) ─────────────────────────────────────
+// ── Tab Switching Logic ────────────────────────────────
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanes = document.querySelectorAll('.tab-pane');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanes.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const targetId = btn.dataset.tab;
+    const targetPane = document.getElementById(targetId);
+    if (targetPane) {
+      targetPane.classList.add('active');
+      if (targetId === 'tab-location' && map) {
+        setTimeout(() => map.invalidateSize(), 60);
+      }
+    }
+  });
+});
+
+function showInlineAlert(msg, isError = true, actionFn = null, actionLabel = 'Settings') {
+  if (!inlineAlert || !inlineAlertText) return;
+  inlineAlertText.textContent = msg + ' ';
+  if (actionFn) {
+    const actionBtn = document.createElement('button');
+    actionBtn.className = 'inline-alert-action';
+    actionBtn.textContent = actionLabel;
+    actionBtn.onclick = (e) => {
+      e.stopPropagation();
+      actionFn();
+    };
+    inlineAlertText.appendChild(actionBtn);
+  }
+  inlineAlert.style.display = 'flex';
+}
+
+if (inlineAlertDismiss) {
+  inlineAlertDismiss.addEventListener('click', () => {
+    inlineAlert.style.display = 'none';
+  });
+}
+
+// ── Campus presets (Main Campus - ITS Sukolilo) ──────────────────────
 const PRESETS = {
-  'preset-tower2': { lat: -7.2852792,            lng: 112.7952975,       label: 'Tower 2' },
-  'preset-tower1': { lat: -7.2849915,            lng: 112.793897,        label: 'Tower 1' },
-  'preset-koridc': { lat: -7.284793988582386,    lng: 112.79570676550246, label: 'Koridor C' },
+  'preset-tower1': { lat: -7.287123,  lng: 112.798542,  label: 'Tower 1 (TW1)' },
+  'preset-tower2': { lat: -7.2852792, lng: 112.7952975, label: 'Tower 2 (TW2)' },
+  'preset-if':     { lat: -7.279815,  lng: 112.797430,  label: 'Informatika (IF)' },
+  'preset-ee':     { lat: -7.282850,  lng: 112.794620,  label: 'Elektro (EE)' },
 };
 
 // ── Obfuscated storage key map (mirrors service-worker.js K) ───────────
@@ -166,9 +217,9 @@ async function checkIpOnEnable() {
 
     // Check if connected to Campus Network / VPN
     const isCampusNetwork = Boolean(
-      (isp && (isp.toLowerCase().includes('campus') || isp.toLowerCase().includes('university') || isp.toLowerCase().includes('eduroam'))) ||
-      (org && (org.toLowerCase().includes('campus') || org.toLowerCase().includes('university') || org.toLowerCase().includes('eduroam'))) ||
-      (domain && (domain.toLowerCase().includes('.edu') || domain.toLowerCase().includes('.ac.')))
+      (isp && (isp.toLowerCase().includes('campus') || isp.toLowerCase().includes('university') || isp.toLowerCase().includes('eduroam') || isp.toLowerCase().includes('sepuluh nopember') || isp.toLowerCase().includes('its'))) ||
+      (org && (org.toLowerCase().includes('campus') || org.toLowerCase().includes('university') || org.toLowerCase().includes('eduroam') || org.toLowerCase().includes('sepuluh nopember') || org.toLowerCase().includes('its'))) ||
+      (domain && (domain.toLowerCase().includes('.edu') || domain.toLowerCase().includes('.ac.') || domain.toLowerCase().includes('its.ac.id')))
     );
                           
     if (diagIpStatus) {
@@ -191,11 +242,12 @@ async function checkIpOnEnable() {
       await storageSet({ [K.enabled]: false });
       enableToggle.checked = false;
       updateStatus(false, '', '');
-      // Actionable toast — clicking it opens Options to the VPN Lock toggle
-      showToast('SPOOF ABORTED: Not on Campus VPN! Tap to open Options.', true, 10000, () => {
+      // Actionable inline banner & toast
+      showInlineAlert('Spoof paused: Campus VPN required by settings.', true, () => {
         if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
         else window.open(chrome.runtime.getURL('options/options.html'));
-      });
+      }, 'Open Settings');
+      showToast('Spoof paused: Connect to Campus VPN.', true, 6000);
       return;
     }
 
@@ -495,6 +547,9 @@ async function loadSettings() {
 
   // Check IP in background on popup load
   checkIpOnEnable();
+
+  // Load live peer codes
+  fetchPeerCodes();
 }
 
 // ── Test Mode & Diagnostic Launcher Listeners ────────
@@ -525,6 +580,160 @@ if (btnTestHtml5) {
     } else {
       window.open(url, '_blank');
     }
+  });
+}
+
+// ── Live Peer Attendance Codes Sync (CF Worker KV) ────────
+const PEER_WORKER_URL = 'https://presensi-peer-sync.worker.dev';
+
+function formatTimeAgo(ts) {
+  const seconds = Math.floor((Date.now() - ts) / 1000);
+  if (seconds < 60) return `${Math.max(1, seconds)}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ago`;
+}
+
+function renderPeerCodes(items) {
+  if (!peerFeedList) return;
+  peerFeedList.textContent = '';
+
+  if (!items || !items.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-size:10.5px; color:var(--text-muted); text-align:center; padding:6px 0;';
+    empty.textContent = 'No peer codes found in pool.';
+    peerFeedList.appendChild(empty);
+    return;
+  }
+
+  items.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'peer-feed-item';
+
+    const left = document.createElement('div');
+    left.style.cssText = 'display:flex; flex-direction:column; gap:1px; overflow:hidden;';
+
+    const classNameSpan = document.createElement('span');
+    classNameSpan.style.cssText = 'font-weight:600; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;';
+    classNameSpan.textContent = item.class_id;
+
+    const timeSpan = document.createElement('span');
+    timeSpan.style.cssText = 'font-size:9.5px; color:var(--text-muted);';
+    timeSpan.textContent = `${formatTimeAgo(item.updated_at)}${item.room ? ' · ' + item.room : ''}`;
+
+    left.appendChild(classNameSpan);
+    left.appendChild(timeSpan);
+
+    const codeBadge = document.createElement('span');
+    codeBadge.className = 'peer-code-badge';
+    codeBadge.textContent = item.code;
+    codeBadge.title = 'Click to copy code';
+    codeBadge.addEventListener('click', () => {
+      navigator.clipboard.writeText(item.code).then(() => {
+        showToast(`Copied ${item.code}!`);
+      }).catch(() => {
+        showToast(item.code);
+      });
+    });
+
+    row.appendChild(left);
+    row.appendChild(codeBadge);
+    peerFeedList.appendChild(row);
+  });
+}
+
+async function fetchPeerCodes() {
+  if (!peerFeedList) return;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2500);
+    const res = await fetch(`${PEER_WORKER_URL}/api/codes`, { credentials: 'omit', signal: controller.signal }).catch(() => null);
+    clearTimeout(timeout);
+
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data.items && data.items.length) {
+        chrome.storage.local.set({ _peer_codes_cache: data.items });
+        renderPeerCodes(data.items);
+        return;
+      }
+    }
+  } catch (_) {}
+
+  // Fallback to local cache
+  chrome.storage.local.get(['_peer_codes_cache'], (res) => {
+    const cached = res && Array.isArray(res._peer_codes_cache) ? res._peer_codes_cache : [];
+    renderPeerCodes(cached);
+  });
+}
+
+async function broadcastPeerCode() {
+  const classId = peerClassInput ? peerClassInput.value.trim() : '';
+  const code = peerCodeInput ? peerCodeInput.value.trim() : '';
+
+  if (!classId) {
+    showToast('Enter class/course name', true);
+    if (peerClassInput) peerClassInput.focus();
+    return;
+  }
+
+  if (!/^\d{6}$/.test(code)) {
+    showToast('Code must be 6 digits', true);
+    if (peerCodeInput) peerCodeInput.focus();
+    return;
+  }
+
+  if (btnSharePeerCode) {
+    btnSharePeerCode.disabled = true;
+    btnSharePeerCode.textContent = 'Sharing...';
+  }
+
+  try {
+    const item = {
+      class_id: classId,
+      code,
+      room: null,
+      updated_at: Date.now()
+    };
+
+    // 1. Post to worker (background attempt)
+    try {
+      await fetch(`${PEER_WORKER_URL}/api/code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+    } catch (_) {}
+
+    // 2. Cache locally
+    chrome.storage.local.get(['_peer_codes_cache'], (res) => {
+      let list = res && Array.isArray(res._peer_codes_cache) ? res._peer_codes_cache : [];
+      list = list.filter(x => x.class_id !== classId);
+      list.unshift(item);
+      chrome.storage.local.set({ _peer_codes_cache: list });
+      renderPeerCodes(list);
+    });
+
+    showToast('Code shared to peer pool!');
+    if (peerCodeInput) peerCodeInput.value = '';
+  } catch (err) {
+    showToast('Failed to share: ' + err.message, true);
+  } finally {
+    if (btnSharePeerCode) {
+      btnSharePeerCode.disabled = false;
+      btnSharePeerCode.textContent = 'Broadcast';
+    }
+  }
+}
+
+if (btnSharePeerCode) {
+  btnSharePeerCode.addEventListener('click', broadcastPeerCode);
+}
+if (btnFetchPeerCodes) {
+  btnFetchPeerCodes.addEventListener('click', () => {
+    fetchPeerCodes();
+    showToast('Feed refreshed');
   });
 }
 

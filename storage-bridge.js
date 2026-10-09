@@ -39,7 +39,7 @@
       enabled: result[K.enabled] === true,
       lat:     result[K.lat]     || null,
       lng:     result[K.lng]     || null,
-      targetDomain: result[K.domain]  || atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1'),
+      targetDomain: result[K.domain]  || 'mia.its.ac.id',
       profile:      result[K.profile] || 'mobile_gps',
       deviceMode:   result[K.deviceMode] || 'desktop',
       testMode:     result[K.testMode] === true,
@@ -121,9 +121,32 @@
     } catch (_) {}
   }
 
+  // --- Coordinate Update Bridge (MAIN world -> chrome.storage) ---
+  function handleUpdateCoords(e) {
+    try {
+      e.stopImmediatePropagation();
+    } catch (_) {}
+
+    if (!isContextValid()) {
+      try { window.removeEventListener('__gps_update_coords', handleUpdateCoords, true); } catch (_) {}
+      return;
+    }
+
+    try {
+      const data = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail;
+      if (data && data.lat !== undefined && data.lng !== undefined) {
+        chrome.storage.local.set({
+          [K.lat]: parseFloat(data.lat),
+          [K.lng]: parseFloat(data.lng),
+        });
+      }
+    } catch (_) {}
+  }
+
   try {
     window.addEventListener('__gps_sync_req', handleSyncReq, true);
     window.addEventListener('__gps_telemetry_msg', handleTelemetry, true);
+    window.addEventListener('__gps_update_coords', handleUpdateCoords, true);
   } catch (_) {}
 
   try {

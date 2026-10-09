@@ -32,7 +32,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     defaults[K.enabled] = false;
     defaults[K.lat]     = '-7.2852792';
     defaults[K.lng]     = '112.7952975';
-    defaults[K.domain]  = atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1');
+    defaults[K.domain]  = 'mia.its.ac.id';
     defaults[K.profile] = 'mobile_gps';
     defaults[K.vpnLock] = true;
     defaults[K.deviceMode] = 'desktop';
@@ -40,12 +40,21 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     chrome.storage.local.set(defaults);
   }
 
+  // Register autonomous background polling alarm (15-min interval)
+  try {
+    chrome.alarms.create('presensi_auto_check', {
+      periodInMinutes: 15
+    });
+  } catch (_) {}
+
   // Retroactively inject content scripts only into target portal & diagnostic tabs upon install/reload
   try {
-    const targetDomain = atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1');
+    const targetDomain = 'mia.its.ac.id';
     const relevantPatterns = [
       `*://${targetDomain}/*`,
       `*://*.${targetDomain}/*`,
+      '*://portal.university.edu/*',
+      '*://*.portal.university.edu/*',
       '*://browserleaks.com/*',
       '*://*.browserleaks.com/*',
       '*://html5demos.com/*',
@@ -68,6 +77,54 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       }).catch(() => {});
     }
   } catch (_) {}
+});
+
+// --- Autonomous Background Scheduler (chrome.alarms) ---
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== 'presensi_auto_check') return;
+
+  // 1. Timezone Guard: Active only during Indonesian academic hours (06:30 - 18:30 WIB)
+  const now = new Date();
+  const utcHours = now.getUTCHours();
+  const wibHours = (utcHours + 7) % 24;
+  if (wibHours < 6 || wibHours > 18) {
+    return;
+  }
+
+  // 2. Read current spoof state
+  chrome.storage.local.get([K.enabled, K.domain, K.lat, K.lng, K.profile], async (cfg) => {
+    if (chrome.runtime.lastError || !cfg[K.enabled]) return;
+
+    const targetDomain = cfg[K.domain] || 'mia.its.ac.id';
+    try {
+      // 3. Headless ping to check if user has active session on portal
+      const checkUrl = `https://${targetDomain}/dashboard`;
+      const res = await fetch(checkUrl, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Accept': 'text/html,application/xhtml+xml' }
+      });
+
+      if (res.ok) {
+        const text = await res.text();
+        // Check for presence of active attendance markers in DOM/response
+        const hasActivePresensi = /presensi|kehadiran|daftar\s*hadir|absen/i.test(text) &&
+                                  /buka|aktif|active|open/i.test(text);
+
+        if (hasActivePresensi) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+            title: '📅 Presensi Window Active',
+            message: `Sesi presensi aktif terdeteksi di ${targetDomain}. Koordinat spoof siap diterapkan.`,
+            priority: 2
+          });
+        }
+      }
+    } catch (_) {
+      // Offline or network error; silent recovery
+    }
+  });
 });
 
 // --- Device/User-Agent Spoofing (declarativeNetRequest) ---

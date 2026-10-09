@@ -1,0 +1,10 @@
+name = "presensi-peer-sync"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-01-01"
+
+# Create a KV namespace with:
+#   npx wrangler kv:namespace create PRESENSI_KV
+# Then paste the output ID below:
+[[kv_namespaces]]
+binding = "PRESENSI_KV"
+id = "YOUR_KV_NAMESPACE_ID"
