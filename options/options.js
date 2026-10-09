@@ -235,8 +235,15 @@ async function renderCustomPresets() {
     const info = document.createElement('div');
     info.style.display = 'flex';
     info.style.flexDirection = 'column';
+    const nameEl = document.createElement('strong');
+    nameEl.textContent = p.name || 'Preset';
+    const detailEl = document.createElement('span');
+    detailEl.style.fontSize = '11.5px';
+    detailEl.style.color = 'var(--text-muted)';
     const regexText = p.regex ? ` • Match: ${p.regex}` : '';
-    info.innerHTML = `<strong>${p.name || 'Preset'}</strong><span style="font-size:11.5px; color:var(--text-muted);">${p.lat}, ${p.lng}${regexText}</span>`;
+    detailEl.textContent = `${p.lat}, ${p.lng}${regexText}`;
+    info.appendChild(nameEl);
+    info.appendChild(detailEl);
 
     const delBtn = document.createElement('button');
     delBtn.className = 'btn';
