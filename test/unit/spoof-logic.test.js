@@ -182,10 +182,16 @@ describe('5. Function.prototype.toString Cloaking Verification', () => {
 
 describe('6. Auto-Room Preset Matching', () => {
   const CAMPUS_ROOM_PRESETS = [
-    { regex: /(?:TW1|TOWER\s*1)/i,       lat: -7.287123,  lng: 112.798542,  label: 'Tower 1 (TW1)' },
-    { regex: /(?:TW2|TOWER\s*2)/i,       lat: -7.2852792, lng: 112.7952975, label: 'Tower 2 (TW2)' },
-    { regex: /(?:IF|INFORMATIKA|TC)/i,   lat: -7.279815,  lng: 112.797430,  label: 'Informatika (IF)' },
-    { regex: /(?:EE|TE|ELEKTRO)/i,       lat: -7.282850,  lng: 112.794620,  label: 'Elektro (EE)' },
+    { regex: /\b(?:TW1|TOWER\s*1)\b/i,                 lat: -7.287123,  lng: 112.798542,  label: 'Tower 1 (TW1)' },
+    { regex: /\b(?:TW2|TOWER\s*2)\b/i,                 lat: -7.2852792, lng: 112.7952975, label: 'Tower 2 (TW2)' },
+    { regex: /\b(?:IF|INFORMATIKA|TC)\b/i,             lat: -7.279815,  lng: 112.797430,  label: 'Informatika (IF)' },
+    { regex: /\b(?:EE|TE|ELEKTRO)\b/i,                 lat: -7.282850,  lng: 112.794620,  label: 'Elektro (EE)' },
+    { regex: /\b(?:SI|SISTEM\s*INFORMASI|IS)\b/i,      lat: -7.280140,  lng: 112.796320,  label: 'Sistem Informasi (SI)' },
+    { regex: /\b(?:MATH|MATEMATIKA|SAINS|FSAD)\b/i,    lat: -7.283920,  lng: 112.793810,  label: 'Sains & Matematika' },
+    { regex: /\b(?:PERPUS|LIBRARY|PERPUSTAKAAN)\b/i,   lat: -7.282500,  lng: 112.794900,  label: 'Perpustakaan Pusat' },
+    { regex: /\b(?:REKTORAT|PLAZA\s*DR\s*ANGKA)\b/i,   lat: -7.284890,  lng: 112.796120,  label: 'Rektorat ITS' },
+    { regex: /\b(?:PASCA|PASCASARJANA)\b/i,            lat: -7.281920,  lng: 112.798150,  label: 'Pascasarjana' },
+    { regex: /\b(?:RC|RESEARCH\s*CENTER|PUSAT\s*RISET)\b/i, lat: -7.286100, lng: 112.797200, label: 'Research Center (RC)' },
   ];
 
   function detectRoomPreset(roomString) {
@@ -230,6 +236,22 @@ describe('6. Auto-Room Preset Matching', () => {
     assert.ok(r2 && r2.label === 'Elektro (EE)');
     assert.ok(r3 && r3.label === 'Elektro (EE)');
     assert.strictEqual(r1.lat, -7.282850);
+  });
+
+  test('Matches Sistem Informasi (SI / IS) room strings', () => {
+    const r1 = detectRoomPreset('SI-101');
+    const r2 = detectRoomPreset('Lab Sistem Informasi Enterprise');
+    assert.ok(r1 && r1.label === 'Sistem Informasi (SI)');
+    assert.ok(r2 && r2.label === 'Sistem Informasi (SI)');
+    assert.strictEqual(r1.lat, -7.280140);
+  });
+
+  test('Matches Sains & Matematika room strings', () => {
+    const r1 = detectRoomPreset('FSAD-204');
+    const r2 = detectRoomPreset('Lab Matematika Komputasi');
+    assert.ok(r1 && r1.label === 'Sains & Matematika');
+    assert.ok(r2 && r2.label === 'Sains & Matematika');
+    assert.strictEqual(r1.lat, -7.283920);
   });
 
   test('Returns null for unmapped or online rooms', () => {
