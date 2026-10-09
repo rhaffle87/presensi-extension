@@ -33,7 +33,7 @@ describe('1. Storage Key Schema Parity', () => {
     const popupK = extractKObject(path.join(rootDir, 'popup.js'));
     const optK = extractKObject(path.join(rootDir, 'options', 'options.js'));
 
-    const requiredKeys = ['enabled', 'lat', 'lng', 'domain', 'profile', 'vpnLock', 'deviceMode', 'testMode'];
+    const requiredKeys = ['enabled', 'lat', 'lng', 'domain', 'profile', 'vpnLock', 'deviceMode', 'testMode', 'customPresets'];
 
     requiredKeys.forEach(key => {
       assert.ok(swK[key], `Missing ${key} in service-worker.js`);
@@ -187,11 +187,33 @@ describe('6. Auto-Room Preset Matching', () => {
     { regex: /\b(?:KORIDC|KORIDOR\s*C|CLASS\s*C|KORIDOR)\b/i, lat: -7.284793988582386, lng: 112.79570676550246, label: 'Koridor C' },
   ];
 
-  function detectRoomPreset(roomString) {
+  function detectRoomPreset(roomString, customPresets = []) {
     if (!roomString || typeof roomString !== 'string') return null;
     for (let i = 0; i < CAMPUS_ROOM_PRESETS.length; i++) {
       if (CAMPUS_ROOM_PRESETS[i].regex.test(roomString)) {
         return CAMPUS_ROOM_PRESETS[i];
+      }
+    }
+    if (Array.isArray(customPresets)) {
+      for (let j = 0; j < customPresets.length; j++) {
+        const cp = customPresets[j];
+        if (!cp || cp.lat == null || cp.lng == null) continue;
+        if (cp.regex) {
+          try {
+            const rx = new RegExp(cp.regex, 'i');
+            if (rx.test(roomString)) {
+              return { lat: cp.lat, lng: cp.lng, label: cp.name || 'Custom Preset' };
+            }
+          } catch (_) {}
+        } else if (cp.name) {
+          try {
+            const escaped = cp.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const rx = new RegExp('\\b' + escaped + '\\b', 'i');
+            if (rx.test(roomString)) {
+              return { lat: cp.lat, lng: cp.lng, label: cp.name };
+            }
+          } catch (_) {}
+        }
       }
     }
     return null;
@@ -220,6 +242,22 @@ describe('6. Auto-Room Preset Matching', () => {
     assert.ok(r3 && r3.label === 'Koridor C');
     assert.strictEqual(r1.lat, -7.284793988582386);
     assert.strictEqual(r1.lng, 112.79570676550246);
+  });
+
+  test('Matches user-defined custom presets via regex or name', () => {
+    const customList = [
+      { name: 'Lab Robotika', lat: -7.281, lng: 112.799, regex: '\\b(?:ROBOTIKA|LAB-ROB)\\b' },
+      { name: 'Perpustakaan Pusat', lat: -7.282, lng: 112.798 }
+    ];
+    const match1 = detectRoomPreset('ROBOTIKA LT. 2', customList);
+    assert.ok(match1);
+    assert.strictEqual(match1.label, 'Lab Robotika');
+    assert.strictEqual(match1.lat, -7.281);
+
+    const match2 = detectRoomPreset('Gedung Perpustakaan Pusat Ruang Baca', customList);
+    assert.ok(match2);
+    assert.strictEqual(match2.label, 'Perpustakaan Pusat');
+    assert.strictEqual(match2.lat, -7.282);
   });
 
   test('Returns null for unmapped or online rooms', () => {
@@ -300,3 +338,16 @@ describe('9. Peer Code Validation and KV Record Contract', () => {
     assert.strictEqual(validatePeerCode(null), false);
   });
 });
+
+describe('10. Manifest Commands & Shortcut Integrity', () => {
+  test('Manifest declares toggle-spoof command with Alt+S shortcut', () => {
+    const rootDir = path.join(__dirname, '..', '..');
+    const manifest = JSON.parse(fs.readFileSync(path.join(rootDir, 'manifest.json'), 'utf8'));
+
+    assert.ok(manifest.commands, 'Manifest missing commands declaration');
+    assert.ok(manifest.commands['toggle-spoof'], 'Manifest missing toggle-spoof command');
+    assert.strictEqual(manifest.commands['toggle-spoof'].suggested_key.default, 'Alt+S');
+    assert.ok(manifest.commands['toggle-spoof'].description);
+  });
+});
+

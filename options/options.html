@@ -216,6 +216,7 @@
     <nav>
       <ul>
         <li><a href="#preferences">Preferences</a></li>
+        <li><a href="#custom-presets">Custom Presets</a></li>
         <li><a href="#management">Management</a></li>
         <li><a href="#log">Submission Log</a></li>
         <li><a href="#systems">How It Works</a></li>
@@ -291,6 +292,42 @@
         <div class="footer-actions">
           <button class="btn" id="saveOptions">Save Preferences</button>
           <span class="status-msg" id="saveStatus">Saved successfully</span>
+        </div>
+      </section>
+
+      <section id="custom-presets">
+        <h2>Custom Campus Facility Presets</h2>
+        <p>Define custom campus facilities, research centers, or department classrooms with designated GPS coordinates. These will appear in the popup quick-select list and be automatically matched by attendance room sniffers.</p>
+
+        <div class="card">
+          <div class="form-row" style="display:grid; grid-template-columns: 1.2fr 1fr 1fr 1.2fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label for="customPresetName">Facility / Room Name</label>
+              <input type="text" id="customPresetName" placeholder="e.g. Lab Robotika" autocomplete="off" />
+            </div>
+            <div>
+              <label for="customPresetLat">Latitude</label>
+              <input type="text" id="customPresetLat" placeholder="-7.279500" autocomplete="off" />
+            </div>
+            <div>
+              <label for="customPresetLng">Longitude</label>
+              <input type="text" id="customPresetLng" placeholder="112.798100" autocomplete="off" />
+            </div>
+            <div>
+              <label for="customPresetRegex">Match Regex (Optional)</label>
+              <input type="text" id="customPresetRegex" placeholder="e.g. ROBOTIK|ROBOT" autocomplete="off" />
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button class="btn" id="addCustomPresetBtn" style="padding: 6px 14px; font-size: 13px;">Add Custom Preset</button>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <h3 style="margin-top: 0; margin-bottom: 12px;">Saved Presets</h3>
+            <div id="customPresetsList" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Dynamic presets -->
+            </div>
+          </div>
         </div>
       </section>
 
