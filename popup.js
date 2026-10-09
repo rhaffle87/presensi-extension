@@ -7,7 +7,6 @@ const statusText     = document.getElementById('statusText');
 const latInput       = document.getElementById('latInput');
 const lngInput       = document.getElementById('lngInput');
 const saveBtn        = document.getElementById('saveBtn');
-const mapContainer   = document.getElementById('map');
 const toast          = document.getElementById('toast');
 const toastText      = document.getElementById('toastText');
 const presetBtns     = document.querySelectorAll('.preset-btn:not(#preset-myloc)');
@@ -51,6 +50,7 @@ tabBtns.forEach(btn => {
 
 function showInlineAlert(msg, isError = true, actionFn = null, actionLabel = 'Settings') {
   if (!inlineAlert || !inlineAlertText) return;
+  inlineAlert.classList.toggle('error', isError);
   inlineAlertText.textContent = msg + ' ';
   if (actionFn) {
     const actionBtn = document.createElement('button');
@@ -121,7 +121,7 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
 
 /**
  * Checks if switching from the last saved location to the proposed new coordinates
- * would imply an unrealistic travel velocity (> 100 km/h).
+ * would imply an unrealistic travel velocity (> 100 km/h).
  * If a violation is detected, shows a warning toast and returns true.
  *
  * @param {string|number} newLat - Proposed latitude

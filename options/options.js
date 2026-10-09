@@ -31,7 +31,7 @@ if (manageLink && chrome.runtime.id) {
     e.preventDefault();
     // chrome://extensions is Chromium-only. Firefox uses about:addons.
     // chrome.runtime.openOptionsPage and chrome.tabs.create work on both.
-    if (typeof __extIsFirefox !== 'undefined' && __extIsFirefox) {
+    if (typeof globalThis !== 'undefined' && globalThis.__extIsFirefox) {
       chrome.tabs.create({ url: 'about:addons' });
     } else {
       chrome.tabs.create({ url: 'chrome://extensions/?id=' + chrome.runtime.id });

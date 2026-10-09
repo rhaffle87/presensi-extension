@@ -9,7 +9,7 @@
  */
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env, _ctx) {
     // 1. CORS Preflight & Headers
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',

@@ -208,6 +208,20 @@
     } catch (_) {}
   }
 
+  let _resultSent = false;
+  function _sendResultTelemetry(status) {
+    if (_resultSent) return;
+    _resultSent = true;
+    try {
+      const payload = {
+        type:   'PRESENSI_RESULT',
+        status,
+        ts:     Date.now()
+      };
+      _dispatchEvent(new _CustomEvent('__gps_telemetry_msg', { detail: JSON.stringify(payload) }));
+    } catch (_) {}
+  }
+
   // ── Geolocation Proxy Hooks ────────────────────────────────────────────────
   const getCurrentPositionProxy = new Proxy(_origGetCurrentPosition, {
     apply(target, thisArg, argumentsList) {
@@ -702,7 +716,7 @@
           // If enabled, apply the device spoofing to navigator
           applyDeviceSpoofing(currentConfig.deviceMode);
         }
-      } catch (e) {}
+      } catch (_) {}
     }
   }, true);
 
@@ -1113,7 +1127,7 @@
 
     const masa = parseInt(w.masa_berlaku || '0', 10);
     let endTime;
-    let ruleText = '';
+    let ruleText;
 
     if (masa === 15) {
       endTime = startTime + (15 * 60 * 1000);
@@ -1302,21 +1316,6 @@
   if (window.location.hostname === TARGET_DOMAIN ||
       window.location.hostname.endsWith('.' + TARGET_DOMAIN) ||
       window.location.hostname === 'mia.its.ac.id') {
-
-    let _resultSent = false;
-
-    function _sendResultTelemetry(status) {
-      if (_resultSent) return;
-      _resultSent = true;
-      try {
-        const payload = {
-          type:   'PRESENSI_RESULT',
-          status,
-          ts:     Date.now()
-        };
-        _dispatchEvent(new _CustomEvent('__gps_telemetry_msg', { detail: JSON.stringify(payload) }));
-      } catch (_) {}
-    }
 
     function _checkDomForResult(node) {
       if (!node || !node.textContent) return;

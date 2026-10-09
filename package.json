@@ -1,13 +1,15 @@
 {
   "$schema": "./.vscode/package.schema.json",
   "name": "presensi-extension",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Chrome extension to override geolocation on portal.university.edu",
   "scripts": {
     "build": "node build.js",
+    "lint": "eslint .",
     "test": "node --test test/unit/spoof-logic.test.js"
   },
   "devDependencies": {
+    "@eslint-community/regexpp": "^4.12.2",
     "@eslint/js": "^10.0.1",
     "archiver": "^7.0.1",
     "eslint": "^10.9.1",
