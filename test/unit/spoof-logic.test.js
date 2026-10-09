@@ -262,3 +262,49 @@ describe('7. Timezone & Anti-Fingerprinting Guard Logic', () => {
     assert.strictEqual(restored, 120);
   });
 });
+
+describe('8. Autonomous Polling Academic Window Guard', () => {
+  function isWibAcademicHours(utcHours) {
+    const wibHours = (utcHours + 7) % 24;
+    return wibHours >= 6 && wibHours <= 18;
+  }
+
+  test('Permits morning classes (07:00 WIB -> 00:00 UTC)', () => {
+    assert.strictEqual(isWibAcademicHours(0), true);
+  });
+
+  test('Permits afternoon classes (14:00 WIB -> 07:00 UTC)', () => {
+    assert.strictEqual(isWibAcademicHours(7), true);
+  });
+
+  test('Rejects midnight off-hours (02:00 WIB -> 19:00 UTC)', () => {
+    assert.strictEqual(isWibAcademicHours(19), false);
+  });
+
+  test('Rejects late night off-hours (23:00 WIB -> 16:00 UTC)', () => {
+    assert.strictEqual(isWibAcademicHours(16), false);
+  });
+});
+
+describe('9. Peer Code Validation and KV Record Contract', () => {
+  function validatePeerCode(code) {
+    if (!code) return false;
+    const clean = String(code).trim();
+    return /^\d{6}$/.test(clean);
+  }
+
+  test('Accepts valid 6-digit numeric codes', () => {
+    assert.strictEqual(validatePeerCode('123456'), true);
+    assert.strictEqual(validatePeerCode('009812'), true);
+    assert.strictEqual(validatePeerCode(' 849201 '), true);
+  });
+
+  test('Rejects malformed codes (alphabetic, short, long, empty)', () => {
+    assert.strictEqual(validatePeerCode('12345'), false);
+    assert.strictEqual(validatePeerCode('1234567'), false);
+    assert.strictEqual(validatePeerCode('ABCDEF'), false);
+    assert.strictEqual(validatePeerCode('12A456'), false);
+    assert.strictEqual(validatePeerCode(''), false);
+    assert.strictEqual(validatePeerCode(null), false);
+  });
+});
