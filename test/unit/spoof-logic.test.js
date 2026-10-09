@@ -182,16 +182,9 @@ describe('5. Function.prototype.toString Cloaking Verification', () => {
 
 describe('6. Auto-Room Preset Matching', () => {
   const CAMPUS_ROOM_PRESETS = [
-    { regex: /\b(?:TW1|TOWER\s*1)\b/i,                 lat: -7.287123,  lng: 112.798542,  label: 'Tower 1 (TW1)' },
-    { regex: /\b(?:TW2|TOWER\s*2)\b/i,                 lat: -7.2852792, lng: 112.7952975, label: 'Tower 2 (TW2)' },
-    { regex: /\b(?:IF|INFORMATIKA|TC)\b/i,             lat: -7.279815,  lng: 112.797430,  label: 'Informatika (IF)' },
-    { regex: /\b(?:EE|TE|ELEKTRO)\b/i,                 lat: -7.282850,  lng: 112.794620,  label: 'Elektro (EE)' },
-    { regex: /\b(?:SI|SISTEM\s*INFORMASI|IS)\b/i,      lat: -7.280140,  lng: 112.796320,  label: 'Sistem Informasi (SI)' },
-    { regex: /\b(?:MATH|MATEMATIKA|SAINS|FSAD)\b/i,    lat: -7.283920,  lng: 112.793810,  label: 'Sains & Matematika' },
-    { regex: /\b(?:PERPUS|LIBRARY|PERPUSTAKAAN)\b/i,   lat: -7.282500,  lng: 112.794900,  label: 'Perpustakaan Pusat' },
-    { regex: /\b(?:REKTORAT|PLAZA\s*DR\s*ANGKA)\b/i,   lat: -7.284890,  lng: 112.796120,  label: 'Rektorat ITS' },
-    { regex: /\b(?:PASCA|PASCASARJANA)\b/i,            lat: -7.281920,  lng: 112.798150,  label: 'Pascasarjana' },
-    { regex: /\b(?:RC|RESEARCH\s*CENTER|PUSAT\s*RISET)\b/i, lat: -7.286100, lng: 112.797200, label: 'Research Center (RC)' },
+    { regex: /\b(?:TW1|TOWER\s*1)\b/i,                        lat: -7.2849915,         lng: 112.793897,         label: 'Tower 1' },
+    { regex: /\b(?:TW2|TOWER\s*2)\b/i,                        lat: -7.2852792,         lng: 112.7952975,        label: 'Tower 2' },
+    { regex: /\b(?:KORIDC|KORIDOR\s*C|CLASS\s*C|KORIDOR)\b/i, lat: -7.284793988582386, lng: 112.79570676550246, label: 'Koridor C' },
   ];
 
   function detectRoomPreset(roomString) {
@@ -207,55 +200,32 @@ describe('6. Auto-Room Preset Matching', () => {
   test('Matches various Tower 1 room strings', () => {
     const r1 = detectRoomPreset('TW1-102');
     const r2 = detectRoomPreset('Tower 1 Lt. 3');
-    assert.ok(r1 && r1.label === 'Tower 1 (TW1)');
-    assert.strictEqual(r1.lat, -7.287123);
-    assert.ok(r2 && r2.label === 'Tower 1 (TW1)');
+    assert.ok(r1 && r1.label === 'Tower 1');
+    assert.strictEqual(r1.lat, -7.2849915);
+    assert.ok(r2 && r2.label === 'Tower 1');
   });
 
   test('Matches Tower 2 room strings', () => {
     const r = detectRoomPreset('TW2-304 / Smart Classroom');
-    assert.ok(r && r.label === 'Tower 2 (TW2)');
+    assert.ok(r && r.label === 'Tower 2');
     assert.strictEqual(r.lat, -7.2852792);
   });
 
-  test('Matches Informatika (IF / TC) room strings', () => {
-    const r1 = detectRoomPreset('IF-105A');
-    const r2 = detectRoomPreset('TC-201');
-    const r3 = detectRoomPreset('Lab Informatika 2');
-    assert.ok(r1 && r1.label === 'Informatika (IF)');
-    assert.ok(r2 && r2.label === 'Informatika (IF)');
-    assert.ok(r3 && r3.label === 'Informatika (IF)');
-    assert.strictEqual(r1.lat, -7.279815);
-  });
-
-  test('Matches Elektro (EE / TE) room strings', () => {
-    const r1 = detectRoomPreset('EE-201');
-    const r2 = detectRoomPreset('TE-101 (Gedung B)');
-    const r3 = detectRoomPreset('Lab Elektro Telekomunikasi');
-    assert.ok(r1 && r1.label === 'Elektro (EE)');
-    assert.ok(r2 && r2.label === 'Elektro (EE)');
-    assert.ok(r3 && r3.label === 'Elektro (EE)');
-    assert.strictEqual(r1.lat, -7.282850);
-  });
-
-  test('Matches Sistem Informasi (SI / IS) room strings', () => {
-    const r1 = detectRoomPreset('SI-101');
-    const r2 = detectRoomPreset('Lab Sistem Informasi Enterprise');
-    assert.ok(r1 && r1.label === 'Sistem Informasi (SI)');
-    assert.ok(r2 && r2.label === 'Sistem Informasi (SI)');
-    assert.strictEqual(r1.lat, -7.280140);
-  });
-
-  test('Matches Sains & Matematika room strings', () => {
-    const r1 = detectRoomPreset('FSAD-204');
-    const r2 = detectRoomPreset('Lab Matematika Komputasi');
-    assert.ok(r1 && r1.label === 'Sains & Matematika');
-    assert.ok(r2 && r2.label === 'Sains & Matematika');
-    assert.strictEqual(r1.lat, -7.283920);
+  test('Matches Koridor C / Class C room strings', () => {
+    const r1 = detectRoomPreset('Koridor C Lt. 2');
+    const r2 = detectRoomPreset('Class C - Room 104');
+    const r3 = detectRoomPreset('KORIDC');
+    assert.ok(r1 && r1.label === 'Koridor C');
+    assert.ok(r2 && r2.label === 'Koridor C');
+    assert.ok(r3 && r3.label === 'Koridor C');
+    assert.strictEqual(r1.lat, -7.284793988582386);
+    assert.strictEqual(r1.lng, 112.79570676550246);
   });
 
   test('Returns null for unmapped or online rooms', () => {
     assert.strictEqual(detectRoomPreset('Online via Zoom'), null);
+    assert.strictEqual(detectRoomPreset('Lab Informatika'), null);
+    assert.strictEqual(detectRoomPreset('EE-101'), null);
     assert.strictEqual(detectRoomPreset(''), null);
     assert.strictEqual(detectRoomPreset(null), null);
   });

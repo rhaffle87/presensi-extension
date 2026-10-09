@@ -73,12 +73,9 @@ if (inlineAlertDismiss) {
 
 // ── Campus presets (Main Campus - ITS Sukolilo) ──────────────────────
 const PRESETS = {
-  'preset-tower1': { lat: -7.287123,  lng: 112.798542,  label: 'Tower 1 (TW1)' },
-  'preset-tower2': { lat: -7.2852792, lng: 112.7952975, label: 'Tower 2 (TW2)' },
-  'preset-if':     { lat: -7.279815,  lng: 112.797430,  label: 'Informatika (IF)' },
-  'preset-ee':     { lat: -7.282850,  lng: 112.794620,  label: 'Elektro (EE)' },
-  'preset-si':     { lat: -7.280140,  lng: 112.796320,  label: 'Sistem Informasi (SI)' },
-  'preset-math':   { lat: -7.283920,  lng: 112.793810,  label: 'Sains & Matematika' },
+  'preset-tower1': { lat: -7.2849915,         lng: 112.793897,         label: 'Tower 1' },
+  'preset-tower2': { lat: -7.2852792,         lng: 112.7952975,        label: 'Tower 2' },
+  'preset-koridc': { lat: -7.284793988582386, lng: 112.79570676550246, label: 'Koridor C' },
 };
 
 // ── Obfuscated storage key map (mirrors service-worker.js K) ───────────
