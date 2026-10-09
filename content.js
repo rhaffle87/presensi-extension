@@ -736,16 +736,9 @@
 
   // ── Auto-Room Matching Presets & Detector ─────────────────────────────────
   const CAMPUS_ROOM_PRESETS = [
-    { regex: /\b(?:TW1|TOWER\s*1)\b/i,                 lat: -7.287123,  lng: 112.798542,  label: 'Tower 1 (TW1)' },
-    { regex: /\b(?:TW2|TOWER\s*2)\b/i,                 lat: -7.2852792, lng: 112.7952975, label: 'Tower 2 (TW2)' },
-    { regex: /\b(?:IF|INFORMATIKA|TC)\b/i,             lat: -7.279815,  lng: 112.797430,  label: 'Informatika (IF)' },
-    { regex: /\b(?:EE|TE|ELEKTRO)\b/i,                 lat: -7.282850,  lng: 112.794620,  label: 'Elektro (EE)' },
-    { regex: /\b(?:SI|SISTEM\s*INFORMASI|IS)\b/i,      lat: -7.280140,  lng: 112.796320,  label: 'Sistem Informasi (SI)' },
-    { regex: /\b(?:MATH|MATEMATIKA|SAINS|FSAD)\b/i,    lat: -7.283920,  lng: 112.793810,  label: 'Sains & Matematika' },
-    { regex: /\b(?:PERPUS|LIBRARY|PERPUSTAKAAN)\b/i,   lat: -7.282500,  lng: 112.794900,  label: 'Perpustakaan Pusat' },
-    { regex: /\b(?:REKTORAT|PLAZA\s*DR\s*ANGKA)\b/i,   lat: -7.284890,  lng: 112.796120,  label: 'Rektorat ITS' },
-    { regex: /\b(?:PASCA|PASCASARJANA)\b/i,            lat: -7.281920,  lng: 112.798150,  label: 'Pascasarjana' },
-    { regex: /\b(?:RC|RESEARCH\s*CENTER|PUSAT\s*RISET)\b/i, lat: -7.286100, lng: 112.797200, label: 'Research Center (RC)' },
+    { regex: /\b(?:TW1|TOWER\s*1)\b/i,                        lat: -7.2849915,         lng: 112.793897,         label: 'Tower 1' },
+    { regex: /\b(?:TW2|TOWER\s*2)\b/i,                        lat: -7.2852792,         lng: 112.7952975,        label: 'Tower 2' },
+    { regex: /\b(?:KORIDC|KORIDOR\s*C|CLASS\s*C|KORIDOR)\b/i, lat: -7.284793988582386, lng: 112.79570676550246, label: 'Koridor C' },
   ];
 
   function detectRoomPreset(roomString) {
