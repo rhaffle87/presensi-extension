@@ -3,72 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Attendance Spoofer</title>
+  <title>myITS Attendance Spoofer</title>
   <link rel="stylesheet" href="lib/leaflet.css" />
   <script src="lib/leaflet.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
-      --bg: #F0F0F0;
+      --bg: #F8FAFC;
       --surface: #FFFFFF;
-      --border: #E5E5E5;
-      --border-hover: #D4D4D4;
-      --text: #111111;
-      --text-muted: #666666;
-      --accent: #111111;
+      --surface-subtle: #F1F5F9;
+      --border: #E2E8F0;
+      --border-hover: #CBD5E1;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --accent: #2563EB;
+      --accent-hover: #1D4ED8;
       --accent-text: #FFFFFF;
-      --green: #346538;
-      --green-bg: #EDF3EC;
-      --red: #9F2F2D;
-      --red-bg: #FDEBEC;
-      --ring: rgba(17, 17, 17, 0.1);
+      --green: #10B981;
+      --green-bg: rgba(16, 185, 129, 0.12);
+      --red: #EF4444;
+      --red-bg: rgba(239, 68, 68, 0.12);
+      --ring: rgba(37, 99, 235, 0.2);
+      --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     [data-theme="dark"] {
-      --bg: #000000;
-      --surface: #141414;
-      --border: #2A2A2A;
-      --border-hover: #3A3A3A;
-      --text: #EDEDED;
-      --text-muted: #888888;
-      --accent: #EDEDED;
-      --accent-text: #000000;
-      --green: #4ADE80;
-      --green-bg: rgba(74, 222, 128, 0.15);
+      --bg: #0B0F17;
+      --surface: #131B26;
+      --surface-subtle: #1A2433;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.16);
+      --text: #F1F5F9;
+      --text-muted: #94A3B8;
+      --accent: #3B82F6;
+      --accent-hover: #60A5FA;
+      --accent-text: #FFFFFF;
+      --green: #34D399;
+      --green-bg: rgba(52, 211, 153, 0.16);
       --red: #F87171;
-      --red-bg: rgba(248, 113, 113, 0.15);
-      --ring: rgba(237, 237, 237, 0.2);
+      --red-bg: rgba(248, 113, 113, 0.16);
+      --ring: rgba(59, 130, 246, 0.25);
+      --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
     }
 
     @media (prefers-color-scheme: dark) {
       [data-theme="system"] {
-        --bg: #000000;
-        --surface: #141414;
-        --border: #2A2A2A;
-        --border-hover: #3A3A3A;
-        --text: #EDEDED;
-        --text-muted: #888888;
-        --accent: #EDEDED;
-        --accent-text: #000000;
-        --green: #4ADE80;
-        --green-bg: rgba(74, 222, 128, 0.15);
+        --bg: #0B0F17;
+        --surface: #131B26;
+        --surface-subtle: #1A2433;
+        --border: rgba(255, 255, 255, 0.08);
+        --border-hover: rgba(255, 255, 255, 0.16);
+        --text: #F1F5F9;
+        --text-muted: #94A3B8;
+        --accent: #3B82F6;
+        --accent-hover: #60A5FA;
+        --accent-text: #FFFFFF;
+        --green: #34D399;
+        --green-bg: rgba(52, 211, 153, 0.16);
         --red: #F87171;
-        --red-bg: rgba(248, 113, 113, 0.15);
-        --ring: rgba(237, 237, 237, 0.2);
+        --red-bg: rgba(248, 113, 113, 0.16);
+        --ring: rgba(59, 130, 246, 0.25);
+        --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
       }
     }
 
     html, body {
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Geist Sans', 'Segoe UI', system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
-      width: 320px;
+      width: 380px;
       margin: 0;
       padding: 0;
       overflow-x: hidden;
-      font-size: 13px;
-      line-height: 1.5;
+      font-size: 12.5px;
+      line-height: 1.45;
     }
 
     /* ── Header ─────────────────────────────────── */
@@ -76,23 +85,31 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 16px;
+      padding: 10px 14px;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
     }
     .header-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 9px;
     }
-    .logo-icon {
-      width: 18px; height: 18px;
-      color: var(--text);
+    .logo-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
     }
     .header h1 {
       font-size: 13px;
       font-weight: 600;
       letter-spacing: -0.01em;
+      line-height: 1.2;
     }
     .header p {
       font-size: 11px;
@@ -101,43 +118,44 @@
     .header-right {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .theme-select {
-      background: var(--bg);
+      background: var(--surface-subtle);
       color: var(--text);
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 11px;
-      padding: 2px 4px;
+      padding: 4px 6px;
       outline: none;
       cursor: pointer;
     }
     .icon-btn {
       background: transparent;
-      border: none;
+      border: 1px solid transparent;
       color: var(--text-muted);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 4px;
-      border-radius: 4px;
-      transition: color 0.15s, background 0.15s;
+      padding: 5px;
+      border-radius: 6px;
+      transition: all 0.15s;
     }
     .icon-btn:hover {
       color: var(--text);
-      background: var(--border);
+      background: var(--surface-subtle);
+      border-color: var(--border);
     }
 
-    /* ── Status bar ──────────────────────────────── */
+    /* ── Status Bar ──────────────────────────────── */
     .status-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 10px 16px;
-      background: var(--bg);
+      padding: 9px 14px;
+      background: var(--surface);
       border-bottom: 1px solid var(--border);
     }
     .status-indicator {
@@ -146,17 +164,17 @@
       gap: 8px;
     }
     .status-dot {
-      width: 6px; height: 6px;
+      width: 7px; height: 7px;
       border-radius: 50%;
       background: var(--text-muted);
       transition: background 0.2s;
     }
     .status-dot.active {
       background: var(--green);
-      box-shadow: 0 0 0 2px var(--green-bg);
+      box-shadow: 0 0 0 3px var(--green-bg);
     }
     .status-text {
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 500;
       color: var(--text-muted);
     }
@@ -164,36 +182,111 @@
       color: var(--green);
     }
 
-    /* ── Toggle ──────────────────────────────────── */
+    /* ── Switch Toggle ───────────────────────────── */
     .toggle {
-      position: relative; width: 32px; height: 18px;
+      position: relative; width: 34px; height: 19px;
       cursor: pointer;
     }
     .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
     .toggle-slider {
       position: absolute; inset: 0;
       background: var(--border);
-      border-radius: 18px;
+      border-radius: 19px;
       transition: background 0.2s;
     }
     .toggle-slider::before {
       content: ''; position: absolute;
-      width: 12px; height: 12px;
+      width: 13px; height: 13px;
       left: 3px; bottom: 3px;
-      background: var(--surface);
+      background: #FFFFFF;
       border-radius: 50%;
       transition: transform 0.2s;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
-    input:checked + .toggle-slider { background: var(--accent); }
-    input:checked + .toggle-slider::before { transform: translateX(14px); }
-    input:focus-visible + .toggle-slider { box-shadow: 0 0 0 2px var(--ring); }
+    input:checked + .toggle-slider { background: var(--green); }
+    input:checked + .toggle-slider::before { transform: translateX(15px); }
 
-    /* ── Map preview ─────────────────────────────── */
+    /* ── Inline Alert Banner ─────────────────────── */
+    .inline-alert {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 14px;
+      font-size: 11.5px;
+      line-height: 1.35;
+      background: var(--red-bg);
+      border-bottom: 1px solid var(--red);
+      color: var(--red);
+    }
+    .inline-alert-content {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+    .inline-alert-action {
+      background: var(--red);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .inline-alert-dismiss {
+      background: transparent;
+      border: none;
+      color: var(--red);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 4px;
+    }
+
+    /* ── Tabs Navigation ─────────────────────────── */
+    .tabs-nav {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 14px;
+      gap: 12px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 11.5px;
+      font-weight: 500;
+      padding: 8px 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+
+    /* ── Map Frame ───────────────────────────────── */
     .map-section {
       position: relative;
+      background: var(--surface-subtle);
       border-bottom: 1px solid var(--border);
-      background: var(--bg);
     }
     .map-label {
       position: absolute;
@@ -201,18 +294,18 @@
       z-index: 10;
       font-size: 10px;
       font-weight: 500;
-      background: var(--surface);
-      color: var(--text);
-      padding: 3px 6px;
-      border-radius: 4px;
-      border: 1px solid var(--border);
+      background: rgba(19, 27, 38, 0.85);
+      backdrop-filter: blur(4px);
+      color: #F1F5F9;
+      padding: 3px 7px;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
       align-items: center;
       gap: 4px;
     }
     .map-frame-wrapper {
-      height: 150px;
-      border-bottom: 1px solid var(--border);
+      height: 135px;
       position: relative;
     }
     .map-frame {
@@ -220,39 +313,35 @@
       background: var(--surface);
       z-index: 1;
     }
-    [data-theme="dark"] .map-frame .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(1.6) contrast(1.2); }
+    [data-theme="dark"] .map-frame .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(1.4) contrast(1.15); }
     @media (prefers-color-scheme: dark) {
-      [data-theme="system"] .map-frame .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(1.6) contrast(1.2); }
+      [data-theme="system"] .map-frame .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(1.4) contrast(1.15); }
     }
-    /* Crosshair is no longer needed with draggable marker, hiding it */
-    .map-crosshair { display: none; }
 
-    /* ── Content ─────────────────────────────────── */
-    .content { padding: 12px 16px; }
+    /* ── Content Container ───────────────────────── */
+    .content {
+      padding: 12px 14px;
+    }
 
     .coord-row {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
-    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    .input-group { display: flex; flex-direction: column; gap: 4px; }
     .input-group label {
       font-size: 11px; font-weight: 500; color: var(--text-muted);
     }
     .input-group input {
-      min-width: 0; /* allows input to shrink below intrinsic width in grid */
       width: 100%;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 8px 6px; /* reduced padding to prevent clipping */
+      padding: 6px 8px;
       color: var(--text);
-      font-size: 11.5px; /* slightly smaller to fit */
+      font-size: 12px;
       font-family: 'SF Mono', 'Geist Mono', 'JetBrains Mono', monospace;
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
+      transition: all 0.15s;
     }
     .input-group input:focus {
       border-color: var(--accent);
@@ -263,160 +352,357 @@
       background: var(--green-bg);
     }
 
-    /* ── Presets ─────────────────────────────────── */
+    /* ── Presets Grid (2x2 Segmented) ────────────── */
     .section-label {
-      font-size: 11px; font-weight: 500; color: var(--text-muted);
-      margin-bottom: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .presets-grid {
-      display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px;
-      margin-bottom: 20px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+      margin-bottom: 6px;
     }
     .preset-btn {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px 4px; /* Reduced padding to fit 4 buttons */
-      color: var(--text-muted);
-      font-family: inherit;
+      border-radius: 7px;
+      padding: 8px 10px;
+      color: var(--text);
       cursor: pointer;
-      transition: border-color 0.2s, color 0.2s, background 0.2s;
-      text-align: center;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-align: left;
     }
     .preset-btn:hover {
       border-color: var(--border-hover);
-      color: var(--text);
-      background: var(--bg);
-    }
-    .preset-btn:focus-visible {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px var(--ring);
+      background: var(--surface-subtle);
     }
     .preset-btn.active {
       border-color: var(--accent);
-      color: var(--accent);
-      background: var(--bg);
+      background: var(--surface-subtle);
+      box-shadow: 0 0 0 1px var(--accent);
     }
-    .preset-icon { display: block; margin-bottom: 6px; }
-    .preset-icon svg { width: 16px; height: 16px; margin: 0 auto; }
+    .preset-icon {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .preset-btn.active .preset-icon {
+      background: var(--accent);
+      color: #FFFFFF;
+      border-color: var(--accent);
+    }
+    .preset-meta {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
     .preset-name {
-      display: block; font-size: 11.5px; font-weight: 500; line-height: 1.2;
+      font-size: 11.5px;
+      font-weight: 600;
+      line-height: 1.2;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
     .preset-sublabel {
-      display: block; font-size: 9px; color: var(--text-muted); margin-top: 2px;
+      font-size: 9.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
     }
 
-
-
-    /* ── Actions ─────────────────────────────────── */
-    .save-btn {
+    /* ── My Location Bar ─────────────────────────── */
+    .myloc-bar {
+      margin-bottom: 12px;
+    }
+    .myloc-btn {
       width: 100%;
-      padding: 10px;
-      background: var(--accent);
-      border: none;
-      border-radius: 6px;
-      color: var(--accent-text);
-      font-size: 13px;
-      font-weight: 500;
-      font-family: inherit;
-      cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
-    }
-    .save-btn:active { transform: scale(0.98); }
-    .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* ── Toast ───────────────────────────────────── */
-    .toast {
-      position: fixed;
-      bottom: 16px; left: 50%;
-      transform: translate(-50%, 20px);
-      opacity: 0; pointer-events: none;
       background: var(--surface);
-      border: 1px solid var(--border);
+      border: 1px dashed var(--border);
+      border-radius: 7px;
+      padding: 7px 10px;
       color: var(--text);
-      padding: 8px 12px;
-      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
       font-size: 11.5px;
       font-weight: 500;
-      white-space: nowrap;
-      z-index: 200;
-      display: flex; align-items: center; gap: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      transition: transform 0.2s, opacity 0.2s;
+      transition: all 0.15s ease;
     }
-    .toast.show { transform: translate(-50%, 0); opacity: 1; }
-    .toast.error { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+    .myloc-btn:hover {
+      border-color: var(--accent);
+      background: var(--surface-subtle);
+      color: var(--accent);
+    }
+    .myloc-btn.active {
+      border-color: var(--accent);
+      background: var(--surface-subtle);
+      color: var(--accent);
+    }
 
-    /* ── Diagnostics & Telemetry Card ── */
-    .diag-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-      font-size: 11px;
-    }
-    .diag-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-    }
-    .diag-row:last-child {
-      margin-bottom: 0;
-    }
-    .diag-label {
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-    .diag-val {
-      font-weight: 600;
-      font-family: 'SF Mono', 'Geist Mono', monospace;
-      font-size: 10.5px;
-    }
-    .diag-val.ok {
-      color: var(--green);
-    }
-    .diag-val.warn {
-      color: var(--red);
-    }
-    .diag-advisory {
-      font-size: 10px;
-      color: var(--text-muted);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 6px 8px;
-      margin-top: 6px;
-      line-height: 1.35;
-    }
-    .diag-btn-grid {
+    /* ── Engine Status Ribbon ────────────────────── */
+    .engine-ribbon {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px;
       margin-bottom: 12px;
     }
-    .diag-btn {
+    .engine-chip {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       font-size: 10.5px;
+    }
+    .engine-chip-title {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .engine-chip-val {
+      font-weight: 600;
+      color: var(--green);
+    }
+
+    /* ── Action Button ───────────────────────────── */
+    .save-btn {
+      width: 100%;
+      padding: 9px;
+      background: var(--accent);
+      border: none;
+      border-radius: 7px;
+      color: var(--accent-text);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .save-btn:hover { background: var(--accent-hover); }
+    .save-btn:active { transform: scale(0.99); }
+
+    /* ── Diagnostics Tab Styles ─────────────────── */
+    .diag-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 11.5px;
+    }
+    .diag-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+    }
+    .diag-row:last-child { margin-bottom: 0; }
+    .diag-label { color: var(--text-muted); font-weight: 500; }
+    .diag-val {
+      font-weight: 600;
+      font-family: 'SF Mono', 'Geist Mono', monospace;
+      font-size: 11px;
+    }
+    .diag-val.ok { color: var(--green); }
+    .diag-val.warn { color: var(--red); }
+
+    .diag-advisory {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .diag-btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .diag-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 8px;
+      font-size: 11px;
       font-weight: 500;
       color: var(--text);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: 5px;
       text-decoration: none;
-      transition: background 0.15s, border-color 0.15s;
+      transition: all 0.15s;
     }
     .diag-btn:hover {
-      background: var(--bg);
+      background: var(--surface-subtle);
       border-color: var(--border-hover);
     }
+
+    /* ── Peer Sync Card ───────────────────────────── */
+    .peer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 11.5px;
+    }
+    .peer-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .peer-card-title {
+      font-size: 11.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .peer-badge {
+      font-size: 9.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .peer-input-row {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .peer-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      color: var(--text);
+      font-size: 11px;
+      outline: none;
+      font-family: inherit;
+    }
+    .peer-input:focus {
+      border-color: var(--accent);
+    }
+    .peer-btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .peer-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+    .peer-btn:hover {
+      background: var(--surface);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .peer-btn-primary {
+      background: var(--accent);
+      color: var(--accent-text);
+      border-color: var(--accent);
+    }
+    .peer-btn-primary:hover {
+      background: var(--accent-hover);
+      color: var(--accent-text);
+    }
+    .peer-feed-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      max-height: 110px;
+      overflow-y: auto;
+    }
+    .peer-feed-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 8px;
+      background: var(--surface-subtle);
+      border-radius: 5px;
+      font-size: 10.5px;
+      border: 1px solid var(--border);
+    }
+    .peer-code-badge {
+      font-family: 'SF Mono', 'Geist Mono', monospace;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .peer-code-badge:hover {
+      border-color: var(--accent);
+    }
+
+    /* ── Toast ───────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 14px; left: 50%;
+      transform: translate(-50%, 15px);
+      opacity: 0; pointer-events: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 500;
+      max-width: 90%;
+      width: max-content;
+      white-space: normal;
+      text-align: center;
+      line-height: 1.35;
+      z-index: 9999;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+    .toast.error { background: var(--red-bg); border-color: var(--red); color: var(--red); }
   </style>
 </head>
 <body>
@@ -424,23 +710,25 @@
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
-        <circle cx="12" cy="10" r="3"/>
-      </svg>
+      <div class="logo-badge">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
       <div>
-        <h1>Attendance Spoofer</h1>
-        <p>Target portal override</p>
+        <h1>myITS Spoofer</h1>
+        <p>Campus Attendance Bridge</p>
       </div>
     </div>
     <div class="header-right">
       <select id="themeSelect" class="theme-select" aria-label="Theme">
-        <option value="system">System</option>
+        <option value="system">Auto</option>
         <option value="light">Light</option>
         <option value="dark">Dark</option>
       </select>
       <button id="optionsBtn" class="icon-btn" aria-label="Open Settings" title="Settings">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
@@ -448,7 +736,7 @@
     </div>
   </div>
 
-  <!-- Status -->
+  <!-- Status Bar -->
   <div class="status-bar">
     <div class="status-indicator">
       <div class="status-dot" id="statusDot"></div>
@@ -460,154 +748,223 @@
     </label>
   </div>
 
-  <!-- Map -->
-  <div class="map-section">
-    <span class="map-label">
-      <svg width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-      Preview
-    </span>
-    <div class="map-frame-wrapper">
-      <div id="map" class="map-frame"></div>
+  <!-- Inline Alert Callout -->
+  <div class="inline-alert" id="inlineAlert">
+    <div class="inline-alert-content">
+      <span>⚠️</span>
+      <span id="inlineAlertText">Alert message</span>
     </div>
-    <div class="map-crosshair">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"/>
-        <line x1="11" y1="4" x2="11" y2="8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="11" y1="14" x2="11" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="4" y1="11" x2="8" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <line x1="14" y1="11" x2="18" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="11" cy="11" r="2" fill="currentColor"/>
-      </svg>
+    <button class="inline-alert-dismiss" id="inlineAlertDismiss">&times;</button>
+  </div>
+
+  <!-- Tabs Nav -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" data-tab="tab-location">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Location & Presets
+    </button>
+    <button class="tab-btn" data-tab="tab-telemetry">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Telemetry & Tools
+    </button>
+  </div>
+
+  <!-- Tab 1: Location & Presets -->
+  <div class="tab-pane active" id="tab-location">
+    <!-- Map Preview -->
+    <div class="map-section">
+      <span class="map-label">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+        Map Preview
+      </span>
+      <div class="map-frame-wrapper">
+        <div id="map" class="map-frame"></div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+      <div class="coord-row">
+        <div class="input-group">
+          <label for="latInput">Latitude</label>
+          <input type="text" id="latInput" placeholder="-7.2851" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="input-group">
+          <label for="lngInput">Longitude</label>
+          <input type="text" id="lngInput" placeholder="112.7956" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+
+      <div class="section-label">
+        <span>Campus Presets (ITS Sukolilo)</span>
+      </div>
+
+      <div class="presets-grid">
+        <button class="preset-btn" id="preset-tower1" data-lat="-7.287123" data-lng="112.798542" aria-label="Tower 1 Preset">
+          <div class="preset-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.62 20.206A2 2 0 0 0 6.4 22h11.2a2 2 0 0 0 1.78-1.794l-5.169-9.783A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M14 9.5 6 22"/>
+            </svg>
+          </div>
+          <div class="preset-meta">
+            <span class="preset-name">Tower 1</span>
+            <span class="preset-sublabel">TW1 Lantai 1-11</span>
+          </div>
+        </button>
+
+        <button class="preset-btn" id="preset-tower2" data-lat="-7.2852792" data-lng="112.7952975" aria-label="Tower 2 Preset">
+          <div class="preset-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+            </svg>
+          </div>
+          <div class="preset-meta">
+            <span class="preset-name">Tower 2</span>
+            <span class="preset-sublabel">TW2 Lantai 1-11</span>
+          </div>
+        </button>
+
+        <button class="preset-btn" id="preset-if" data-lat="-7.279815" data-lng="112.797430" aria-label="Informatika Preset">
+          <div class="preset-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
+            </svg>
+          </div>
+          <div class="preset-meta">
+            <span class="preset-name">Informatika</span>
+            <span class="preset-sublabel">Gedung IF / TC</span>
+          </div>
+        </button>
+
+        <button class="preset-btn" id="preset-ee" data-lat="-7.282850" data-lng="112.794620" aria-label="Elektro Preset">
+          <div class="preset-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+          <div class="preset-meta">
+            <span class="preset-name">Elektro</span>
+            <span class="preset-sublabel">Gedung EE / TE</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- My Location Button -->
+      <div class="myloc-bar">
+        <button class="myloc-btn" id="preset-myloc" aria-label="My Location Preset">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="7"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/>
+          </svg>
+          <span class="preset-sublabel" style="display:none;">Current</span>
+          <span class="preset-name">Use Current Real GPS Location</span>
+        </button>
+      </div>
+
+      <!-- Engine Status Ribbon -->
+      <div class="engine-ribbon">
+        <div class="engine-chip">
+          <span class="engine-chip-title">Auto-Room Match</span>
+          <span class="engine-chip-val">✓ Active</span>
+        </div>
+        <div class="engine-chip">
+          <span class="engine-chip-title">Stealth Suite</span>
+          <span class="engine-chip-val">🔒 Maximum</span>
+        </div>
+      </div>
+
+      <!-- Device Profile Selector -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px; padding: 0 2px;">
+        <label for="profileSelect" style="font-size:11px; color:var(--text-muted); font-weight:500;">Device Profile</label>
+        <select id="profileSelect" class="theme-select" aria-label="Accuracy Profile">
+          <option value="mobile_gps">Mobile GPS (4-10m)</option>
+          <option value="desktop">Desktop / IP (20-40m)</option>
+          <option value="low_signal">Weak Signal (50-120m)</option>
+        </select>
+      </div>
+
+      <button class="save-btn" id="saveBtn">Apply Changes</button>
     </div>
   </div>
 
-  <!-- Form -->
-  <div class="content">
-    <div class="coord-row">
-      <div class="input-group">
-        <label for="latInput">Latitude</label>
-        <input type="text" id="latInput" placeholder="-7.2851" autocomplete="off" spellcheck="false" />
+  <!-- Tab 2: Telemetry & Diagnostics -->
+  <div class="tab-pane" id="tab-telemetry">
+    <div class="content">
+      <!-- Diagnostic Card -->
+      <div class="diag-card">
+        <div class="diag-row">
+          <span class="diag-label">HTML5 GPS Hook</span>
+          <span class="diag-val ok" id="diagGpsStatus">ACTIVE (Ready)</span>
+        </div>
+        <div class="diag-row">
+          <span class="diag-label">Network IP / ISP</span>
+          <span class="diag-val" id="diagIpStatus">Checking IP...</span>
+        </div>
+        <div class="diag-row">
+          <span class="diag-label">Last Submission</span>
+          <span class="diag-val" id="diagLastSubmit">—</span>
+        </div>
+        <div class="diag-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
+          <label for="testModeToggle" class="diag-label" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+            <span>Test Mode (All Sites)</span>
+          </label>
+          <input type="checkbox" id="testModeToggle" style="cursor:pointer;" />
+        </div>
+        <div class="diag-advisory">
+          ⚡ <strong>Notice:</strong> Extension mocks <code>navigator.geolocation</code>. Network IP detection on external geo tools requires Campus VPN.
+        </div>
       </div>
-      <div class="input-group">
-        <label for="lngInput">Longitude</label>
-        <input type="text" id="lngInput" placeholder="112.7956" autocomplete="off" spellcheck="false" />
+
+      <!-- Quick Diagnostic Launchers -->
+      <div class="section-label">Verify GPS Override</div>
+      <div class="diag-btn-grid">
+        <button class="diag-btn" id="btnTestBrowserleaks" type="button" title="Test HTML5 Geolocation API on BrowserLeaks">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          BrowserLeaks Geo
+        </button>
+        <button class="diag-btn" id="btnTestHtml5" type="button" title="Test HTML5 Geolocation API on HTML5 Demos">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          HTML5 Demos
+        </button>
       </div>
-    </div>
 
-    <div class="section-label">Quick Select</div>
-    <div class="presets-grid">
-      <button class="preset-btn" id="preset-tower2" data-lat="-7.2852792" data-lng="112.7952975" aria-label="Tower 2 Preset">
-        <span class="preset-icon">
-          <!-- PURPOSE (R-04): Building icon visually represents the administrative/office nature of Tower 2 -->
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
-            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
-            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
-            <path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>
-          </svg>
-        </span>
-        <span class="preset-name">Tower 2</span>
-        <span class="preset-sublabel">Gedung T2</span>
-      </button>
-      <button class="preset-btn" id="preset-tower1" data-lat="-7.2849915" data-lng="112.793897" aria-label="Tower 1 Preset">
-        <span class="preset-icon">
-          <!-- PURPOSE (R-04): Flask icon visually represents the science/laboratory focus of Tower 1 -->
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.62 20.206A2 2 0 0 0 6.4 22h11.2a2 2 0 0 0 1.78-1.794l-5.169-9.783A2 2 0 0 1 14 9.527V2"/>
-            <path d="M8.5 2h7"/><path d="M14 9.5 6 22"/>
-          </svg>
-        </span>
-        <span class="preset-name">Tower 1</span>
-        <span class="preset-sublabel">Sains</span>
-      </button>
-      <button class="preset-btn" id="preset-koridc" data-lat="-7.284793988582386" data-lng="112.79570676550246" aria-label="Koridor C Preset">
-        <span class="preset-icon">
-          <!-- PURPOSE (R-04): Map pin visually represents a generic classroom location marker -->
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-        </span>
-        <span class="preset-name">Koridor C</span>
-        <span class="preset-sublabel">Class C</span>
-      </button>
-      
-      <!-- My Location Button -->
-      <button class="preset-btn" id="preset-myloc" aria-label="My Location Preset">
-        <span class="preset-icon">
-          <!-- PURPOSE: Target/crosshair icon represents getting current GPS location -->
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="7"/>
-            <path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/>
-          </svg>
-        </span>
-        <span class="preset-name">My Loc</span>
-        <span class="preset-sublabel">Current</span>
-      </button>
-    </div>
-
-
-
-    <!-- Accuracy Profile Selector -->
-    <div style="display:flex; align-items:center; justify-content:space-between; padding: 0 4px 10px;">
-      <label for="profileSelect" style="font-size:11px; color:var(--text-muted); letter-spacing:0.04em; text-transform:uppercase;">Device Profile</label>
-      <select id="profileSelect" class="theme-select" aria-label="Accuracy Profile" style="font-size:11px;">
-        <option value="mobile_gps">Mobile GPS (4-10m)</option>
-        <option value="desktop">Desktop / IP (20-40m)</option>
-        <option value="low_signal">Weak Signal (50-120m)</option>
-      </select>
-    </div>
-
-    <!-- Diagnostic Health Card -->
-    <div class="diag-card">
-      <div class="diag-row">
-        <span class="diag-label">HTML5 GPS Hook</span>
-        <span class="diag-val ok" id="diagGpsStatus">ACTIVE (Ready)</span>
+      <!-- Live Peer Code Feed (Cloudflare KV) -->
+      <div class="peer-card">
+        <div class="peer-card-header">
+          <span class="peer-card-title">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Live Peer Code Pool
+          </span>
+          <span class="peer-badge">KV Sync</span>
+        </div>
+        <div class="peer-input-row">
+          <input type="text" id="peerClassInput" class="peer-input" placeholder="Class / Mata Kuliah" spellcheck="false" />
+          <input type="text" id="peerCodeInput" class="peer-input" placeholder="6-Digit Code" maxlength="6" spellcheck="false" />
+        </div>
+        <div class="peer-btn-row">
+          <button type="button" id="btnSharePeerCode" class="peer-btn peer-btn-primary">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Broadcast
+          </button>
+          <button type="button" id="btnFetchPeerCodes" class="peer-btn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Refresh Feed
+          </button>
+        </div>
+        <div id="peerFeedList" class="peer-feed-list">
+          <div style="font-size:10.5px; color:var(--text-muted); text-align:center; padding:6px 0;">No peer codes fetched yet.</div>
+        </div>
       </div>
-      <div class="diag-row">
-        <span class="diag-label">Network IP / ISP</span>
-        <span class="diag-val" id="diagIpStatus">Checking IP...</span>
-      </div>
-      <div class="diag-row">
-        <span class="diag-label">Last Submission</span>
-        <span class="diag-val" id="diagLastSubmit" style="font-size:10px;">—</span>
-      </div>
-      <div class="diag-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border);">
-        <label for="testModeToggle" class="diag-label" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-          <span>Test Mode (All Sites)</span>
-        </label>
-        <input type="checkbox" id="testModeToggle" style="cursor:pointer;" />
-      </div>
-      <div class="diag-advisory">
-        ⚡ <strong>Notice:</strong> Extension mocks <code>navigator.geolocation</code>. Network IP detection on sites like <em>iplocation.io</em> requires Campus VPN.
-      </div>
-    </div>
 
-
-    <!-- Quick Diagnostic Launchers -->
-    <div class="section-label" style="margin-top:4px;">Verify GPS Override</div>
-    <div class="diag-btn-grid">
-      <button class="diag-btn" id="btnTestBrowserleaks" type="button" title="Test HTML5 Geolocation API on BrowserLeaks">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        BrowserLeaks Geo
-      </button>
-      <button class="diag-btn" id="btnTestHtml5" type="button" title="Test HTML5 Geolocation API on HTML5 Demos">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        HTML5 Demos
+      <button id="vpnLinkBtn" class="preset-btn" style="width:100%; margin-bottom:12px; font-size:11.5px; padding:9px; display:flex; align-items:center; justify-content:center; gap:8px;" aria-label="Get VPN Config">
+        <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Get Campus VPN Config (.ovpn)
       </button>
     </div>
-
-    <button id="vpnLinkBtn" class="preset-btn" style="width:100%; margin-bottom:12px; font-size:12px; padding:8px; display:flex; align-items:center; justify-content:center; gap:8px;" aria-label="Get VPN Config">
-      <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Get Campus VPN Config (.ovpn)
-    </button>
-    <button class="save-btn" id="saveBtn">Apply Changes</button>
-
   </div>
 
   <!-- Toast -->
   <div class="toast" id="toast">
-    <span id="toastText" style="display:flex; align-items:center; gap:6px;">
+    <span id="toastText" style="display:flex; align-items:center; justify-content:center; gap:6px;">
       <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       Saved successfully
     </span>

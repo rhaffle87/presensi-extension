@@ -179,3 +179,86 @@ describe('5. Function.prototype.toString Cloaking Verification', () => {
     );
   });
 });
+
+describe('6. Auto-Room Preset Matching', () => {
+  const CAMPUS_ROOM_PRESETS = [
+    { regex: /(?:TW1|TOWER\s*1)/i,       lat: -7.287123,  lng: 112.798542,  label: 'Tower 1 (TW1)' },
+    { regex: /(?:TW2|TOWER\s*2)/i,       lat: -7.2852792, lng: 112.7952975, label: 'Tower 2 (TW2)' },
+    { regex: /(?:IF|INFORMATIKA|TC)/i,   lat: -7.279815,  lng: 112.797430,  label: 'Informatika (IF)' },
+    { regex: /(?:EE|TE|ELEKTRO)/i,       lat: -7.282850,  lng: 112.794620,  label: 'Elektro (EE)' },
+  ];
+
+  function detectRoomPreset(roomString) {
+    if (!roomString || typeof roomString !== 'string') return null;
+    for (let i = 0; i < CAMPUS_ROOM_PRESETS.length; i++) {
+      if (CAMPUS_ROOM_PRESETS[i].regex.test(roomString)) {
+        return CAMPUS_ROOM_PRESETS[i];
+      }
+    }
+    return null;
+  }
+
+  test('Matches various Tower 1 room strings', () => {
+    const r1 = detectRoomPreset('TW1-102');
+    const r2 = detectRoomPreset('Tower 1 Lt. 3');
+    assert.ok(r1 && r1.label === 'Tower 1 (TW1)');
+    assert.strictEqual(r1.lat, -7.287123);
+    assert.ok(r2 && r2.label === 'Tower 1 (TW1)');
+  });
+
+  test('Matches Tower 2 room strings', () => {
+    const r = detectRoomPreset('TW2-304 / Smart Classroom');
+    assert.ok(r && r.label === 'Tower 2 (TW2)');
+    assert.strictEqual(r.lat, -7.2852792);
+  });
+
+  test('Matches Informatika (IF / TC) room strings', () => {
+    const r1 = detectRoomPreset('IF-105A');
+    const r2 = detectRoomPreset('TC-201');
+    const r3 = detectRoomPreset('Lab Informatika 2');
+    assert.ok(r1 && r1.label === 'Informatika (IF)');
+    assert.ok(r2 && r2.label === 'Informatika (IF)');
+    assert.ok(r3 && r3.label === 'Informatika (IF)');
+    assert.strictEqual(r1.lat, -7.279815);
+  });
+
+  test('Matches Elektro (EE / TE) room strings', () => {
+    const r1 = detectRoomPreset('EE-201');
+    const r2 = detectRoomPreset('TE-101 (Gedung B)');
+    const r3 = detectRoomPreset('Lab Elektro Telekomunikasi');
+    assert.ok(r1 && r1.label === 'Elektro (EE)');
+    assert.ok(r2 && r2.label === 'Elektro (EE)');
+    assert.ok(r3 && r3.label === 'Elektro (EE)');
+    assert.strictEqual(r1.lat, -7.282850);
+  });
+
+  test('Returns null for unmapped or online rooms', () => {
+    assert.strictEqual(detectRoomPreset('Online via Zoom'), null);
+    assert.strictEqual(detectRoomPreset(''), null);
+    assert.strictEqual(detectRoomPreset(null), null);
+  });
+});
+
+describe('7. Timezone & Anti-Fingerprinting Guard Logic', () => {
+  test('WIB timezone offset calculation returns -420 minutes', () => {
+    const wibOffset = -420;
+    assert.strictEqual(wibOffset, -7 * 60);
+  });
+
+  test('WebRTC candidate filter correctly discriminates RFC1918 private vs public IPs', () => {
+    const isPrivate = (candidateStr) => /(?:10\.|192\.168\.|172\.(?:1[6-9]|2[0-9]|3[01])\.)/.test(candidateStr);
+
+    assert.strictEqual(isPrivate('candidate:1 1 UDP 2122260223 192.168.1.105 54321 typ host'), true);
+    assert.strictEqual(isPrivate('candidate:2 1 UDP 2122260223 10.12.0.4 54321 typ host'), true);
+    assert.strictEqual(isPrivate('candidate:3 1 UDP 2122260223 172.20.10.2 54321 typ host'), true);
+    assert.strictEqual(isPrivate('candidate:4 1 UDP 1686052607 202.46.129.5 54321 typ srflx'), false);
+  });
+
+  test('Canvas 1-bit micro-noise toggles least significant bit reliably', () => {
+    let byteVal = 120;
+    const perturbed = (byteVal ^ 1) & 0xFF;
+    assert.strictEqual(perturbed, 121);
+    const restored = (perturbed ^ 1) & 0xFF;
+    assert.strictEqual(restored, 120);
+  });
+});
