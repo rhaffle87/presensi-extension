@@ -206,7 +206,7 @@ chrome.commands.onCommand.addListener(async (command) => {
     // Reload active tab if on target portal so mock coordinates take immediate effect
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab && tab.id && tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')) {
+      if (tab && tab.id && tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
         chrome.tabs.reload(tab.id);
       }
     } catch (_) {}
