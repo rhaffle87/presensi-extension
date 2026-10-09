@@ -748,8 +748,43 @@
         return CAMPUS_ROOM_PRESETS[i];
       }
     }
+    // Check dynamic custom presets configured by user
+    if (currentConfig && Array.isArray(currentConfig.customPresets)) {
+      for (let j = 0; j < currentConfig.customPresets.length; j++) {
+        const cp = currentConfig.customPresets[j];
+        if (!cp || cp.lat == null || cp.lng == null) continue;
+        if (cp.regex) {
+          try {
+            const rx = new RegExp(cp.regex, 'i');
+            if (rx.test(roomString)) {
+              return { lat: cp.lat, lng: cp.lng, label: cp.name || 'Custom Preset' };
+            }
+          } catch (_) {}
+        } else if (cp.name) {
+          try {
+            const escaped = cp.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const rx = new RegExp('\\b' + escaped + '\\b', 'i');
+            if (rx.test(roomString)) {
+              return { lat: cp.lat, lng: cp.lng, label: cp.name };
+            }
+          } catch (_) {}
+        }
+      }
+    }
     return null;
   }
+
+  // Auto-refresh config on tab wake-up or network reconnection
+  _addEventListener('pageshow', () => {
+    configReceived = false;
+    retries = 0;
+    requestConfig();
+  });
+  _addEventListener('online', () => {
+    configReceived = false;
+    retries = 0;
+    requestConfig();
+  });
 
   // ── Phase 4.5: Network Interceptor, Response Sniffer & Live HUD ────────────
   let _hudContainer = null;

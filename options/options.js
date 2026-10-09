@@ -12,6 +12,7 @@ const K = {
   log:     'cfg_sl',
   deviceMode: 'cfg_dm',
   testMode: 'cfg_tm',
+  customPresets: 'cfg_cp',
 };
 
 const optLat      = document.getElementById('optLat');
@@ -79,6 +80,9 @@ async function loadOptions() {
 
   // Render submission log if the log section exists
   renderSubmissionLog();
+
+  // Render custom facility presets
+  renderCustomPresets();
 }
 
 /**
@@ -200,6 +204,96 @@ if (optVpnLock) {
   optVpnLock.addEventListener('change', _updateVpnWarning);
   // Run once on load after optVpnLock value is set
   document.addEventListener('DOMContentLoaded', () => setTimeout(_updateVpnWarning, 50));
+}
+
+// ── Custom Facility Presets Manager ──────────────────────────────────────────
+async function renderCustomPresets() {
+  const container = document.getElementById('customPresetsList');
+  if (!container) return;
+  const res = await storageGet([K.customPresets]);
+  const presets = Array.isArray(res[K.customPresets]) ? res[K.customPresets] : [];
+
+  container.innerHTML = '';
+  if (presets.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.color = 'var(--text-muted)';
+    empty.style.fontSize = '12px';
+    empty.textContent = 'No custom presets added yet.';
+    container.appendChild(empty);
+    return;
+  }
+
+  presets.forEach((p, idx) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.justifyContent = 'space-between';
+    row.style.padding = '8px 12px';
+    row.style.background = 'var(--border)';
+    row.style.borderRadius = '6px';
+
+    const info = document.createElement('div');
+    info.style.display = 'flex';
+    info.style.flexDirection = 'column';
+    const regexText = p.regex ? ` • Match: ${p.regex}` : '';
+    info.innerHTML = `<strong>${p.name || 'Preset'}</strong><span style="font-size:11.5px; color:var(--text-muted);">${p.lat}, ${p.lng}${regexText}</span>`;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn';
+    delBtn.style.padding = '3px 8px';
+    delBtn.style.fontSize = '11px';
+    delBtn.style.background = 'var(--red-bg, rgba(239, 68, 68, 0.15))';
+    delBtn.style.color = 'var(--red, #EF4444)';
+    delBtn.style.border = '1px solid var(--red, #EF4444)';
+    delBtn.textContent = 'Delete';
+    delBtn.onclick = async () => {
+      presets.splice(idx, 1);
+      await storageSet({ [K.customPresets]: presets });
+      renderCustomPresets();
+    };
+
+    row.appendChild(info);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+const addPresetBtn = document.getElementById('addCustomPresetBtn');
+if (addPresetBtn) {
+  addPresetBtn.addEventListener('click', async () => {
+    const nameEl  = document.getElementById('customPresetName');
+    const latEl   = document.getElementById('customPresetLat');
+    const lngEl   = document.getElementById('customPresetLng');
+    const regexEl = document.getElementById('customPresetRegex');
+
+    const name  = nameEl?.value.trim();
+    const lat   = latEl?.value.trim();
+    const lng   = lngEl?.value.trim();
+    const regex = regexEl?.value.trim();
+
+    if (!name) return alert('Enter a facility or room name');
+    const nLat = parseFloat(lat);
+    const nLng = parseFloat(lng);
+    if (!lat || isNaN(nLat) || nLat < -90 || nLat > 90) return alert('Enter a valid latitude between -90 and 90');
+    if (!lng || isNaN(nLng) || nLng < -180 || nLng > 180) return alert('Enter a valid longitude between -180 and 180');
+
+    const res = await storageGet([K.customPresets]);
+    const presets = Array.isArray(res[K.customPresets]) ? res[K.customPresets] : [];
+    presets.push({
+      id: 'cp_' + Date.now(),
+      name,
+      lat: nLat,
+      lng: nLng,
+      regex: regex || null,
+    });
+
+    await storageSet({ [K.customPresets]: presets });
+    if (nameEl)  nameEl.value = '';
+    if (latEl)   latEl.value = '';
+    if (lngEl)   lngEl.value = '';
+    if (regexEl) regexEl.value = '';
+    renderCustomPresets();
+  });
 }
 
 document.addEventListener('DOMContentLoaded', loadOptions);

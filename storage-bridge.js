@@ -25,9 +25,10 @@
     vpnLock: 'cfg_vl',
     deviceMode: 'cfg_dm',
     testMode: 'cfg_tm',
+    customPresets: 'cfg_cp',
   };
 
-  const ALL_KEYS = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode];
+  const ALL_KEYS = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.customPresets];
 
   /**
    * Builds the normalized config object from raw chrome.storage payload.
@@ -39,10 +40,11 @@
       enabled: result[K.enabled] === true,
       lat:     result[K.lat]     || null,
       lng:     result[K.lng]     || null,
-      targetDomain: result[K.domain]  || 'mia.its.ac.id',
-      profile:      result[K.profile] || 'mobile_gps',
-      deviceMode:   result[K.deviceMode] || 'desktop',
-      testMode:     result[K.testMode] === true,
+      targetDomain:  result[K.domain]        || 'mia.its.ac.id',
+      profile:       result[K.profile]       || 'mobile_gps',
+      deviceMode:    result[K.deviceMode]    || 'desktop',
+      testMode:      result[K.testMode]      === true,
+      customPresets: result[K.customPresets] || [],
     };
   }
 

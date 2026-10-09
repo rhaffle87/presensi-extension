@@ -22,6 +22,7 @@ const K = {
   vpnLock: 'cfg_vl',
   deviceMode: 'cfg_dm',
   testMode: 'cfg_tm',
+  customPresets: 'cfg_cp',
 };
 
 
@@ -37,6 +38,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     defaults[K.vpnLock] = true;
     defaults[K.deviceMode] = 'desktop';
     defaults[K.testMode] = false;
+    defaults[K.customPresets] = [];
     chrome.storage.local.set(defaults);
   }
 
@@ -165,16 +167,49 @@ function updateDeviceRules(deviceMode) {
   });
 }
 
-// Re-apply rules on startup
-chrome.storage.local.get([K.deviceMode], (res) => {
+function updateBadge(enabled) {
+  try {
+    if (chrome.action && chrome.action.setBadgeText) {
+      chrome.action.setBadgeText({ text: enabled ? 'ON' : '' });
+      chrome.action.setBadgeBackgroundColor({ color: enabled ? '#10B981' : '#64748B' });
+    }
+  } catch (_) {}
+}
+
+// Re-apply rules & badge on startup
+chrome.storage.local.get([K.deviceMode, K.enabled], (res) => {
   if (chrome.runtime.lastError) return;
-  updateDeviceRules(res[K.deviceMode]);
+  if (res[K.deviceMode]) updateDeviceRules(res[K.deviceMode]);
+  updateBadge(res[K.enabled] === true);
 });
 
 // Listen for settings changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes[K.deviceMode]) {
-    updateDeviceRules(changes[K.deviceMode].newValue);
+  if (namespace === 'local') {
+    if (changes[K.deviceMode]) {
+      updateDeviceRules(changes[K.deviceMode].newValue);
+    }
+    if (changes[K.enabled]) {
+      updateBadge(changes[K.enabled].newValue === true);
+    }
+  }
+});
+
+// ── Keyboard shortcut listener (Alt+S) ──────────────────────────────────────
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === 'toggle-spoof') {
+    const res = await new Promise(resolve => chrome.storage.local.get([K.enabled], resolve));
+    const nextState = !res[K.enabled];
+    await new Promise(resolve => chrome.storage.local.set({ [K.enabled]: nextState }, resolve));
+    updateBadge(nextState);
+
+    // Reload active tab if on target portal so mock coordinates take immediate effect
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.id && tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')) {
+        chrome.tabs.reload(tab.id);
+      }
+    } catch (_) {}
   }
 });
 
@@ -183,7 +218,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // ── Config fetch (popup / content) ─────────────────────────────────────────
   if (message.type === 'GET_CONFIG') {
-    chrome.storage.local.get([K.enabled, K.lat, K.lng, K.domain, K.profile, K.deviceMode, K.testMode], (result) => {
+    chrome.storage.local.get([K.enabled, K.lat, K.lng, K.domain, K.profile, K.deviceMode, K.testMode, K.customPresets], (result) => {
       if (chrome.runtime.lastError) {
         sendResponse({ success: false, error: chrome.runtime.lastError.message });
         return;
@@ -191,13 +226,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({
         success: true,
         config: {
-          enabled:    result[K.enabled]    === true,
-          lat:        result[K.lat]        || null,
-          lng:        result[K.lng]        || null,
-          domain:     result[K.domain]     || atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1'),
-          profile:    result[K.profile]    || 'mobile_gps',
-          deviceMode: result[K.deviceMode] || 'desktop',
-          testMode:   result[K.testMode]   === true,
+          enabled:       result[K.enabled]       === true,
+          lat:           result[K.lat]           || null,
+          lng:           result[K.lng]           || null,
+          domain:        result[K.domain]        || atob('cG9ydGFsLnVuaXZlcnNpdHkuZWR1'),
+          profile:       result[K.profile]       || 'mobile_gps',
+          deviceMode:    result[K.deviceMode]    || 'desktop',
+          testMode:      result[K.testMode]      === true,
+          customPresets: result[K.customPresets] || [],
         }
       });
     });

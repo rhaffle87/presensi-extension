@@ -96,6 +96,7 @@ const K = {
   vpnLock: 'cfg_vl',
   deviceMode: 'cfg_dm',
   testMode: 'cfg_tm',
+  customPresets: 'cfg_cp',
 };
 
 // ── Velocity / Impossible Travel Limiter ───────────────────────────────
@@ -514,6 +515,51 @@ function storageSet(data) {
   });
 }
 
+// ── Load Custom Facility Presets ─────────────────────
+async function loadCustomPresets() {
+  const container = document.getElementById('customPresetsContainer');
+  if (!container) return;
+  try {
+    const res = await storageGet([K.customPresets]);
+    const list = Array.isArray(res[K.customPresets]) ? res[K.customPresets] : [];
+    container.innerHTML = '';
+    if (list.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+    container.style.display = 'flex';
+    container.style.flexWrap = 'wrap';
+    container.style.gap = '6px';
+    container.style.marginBottom = '8px';
+
+    list.forEach(cp => {
+      const chip = document.createElement('button');
+      chip.className = 'custom-preset-chip';
+      chip.textContent = cp.name;
+      chip.title = `${cp.lat}, ${cp.lng}`;
+      chip.onclick = async () => {
+        latInput.value = String(cp.lat);
+        lngInput.value = String(cp.lng);
+        clearActivePreset();
+        flashInputs();
+        updateMap(String(cp.lat), String(cp.lng));
+
+        const enabled = enableToggle.checked;
+        const data = {};
+        data[K.lat] = String(cp.lat);
+        data[K.lng] = String(cp.lng);
+        data[K.prevLat] = String(gaussianJitter(cp.lat));
+        data[K.prevLng] = String(gaussianJitter(cp.lng));
+        data[K.prevTs] = Date.now();
+        await storageSet(data);
+        updateStatus(enabled, String(cp.lat), String(cp.lng));
+        showToast(`${cp.name} applied!`);
+      };
+      container.appendChild(chip);
+    });
+  } catch (_) {}
+}
+
 // ── Load saved settings ──────────────────────────────
 async function loadSettings() {
   const r = await storageGet([K.enabled, K.lat, K.lng, K.theme, K.profile, K.testMode]);
@@ -542,6 +588,9 @@ async function loadSettings() {
   if (isValidCoord(lat) && isValidCoord(lng)) {
     updateMap(lat, lng);
   }
+
+  // Load custom presets into UI
+  await loadCustomPresets();
 
   // Render last submission in diagnostic card
   renderLastSubmission();
