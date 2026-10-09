@@ -51,16 +51,19 @@ tabBtns.forEach(btn => {
 function showInlineAlert(msg, isError = true, actionFn = null, actionLabel = 'Settings') {
   if (!inlineAlert || !inlineAlertText) return;
   inlineAlert.classList.toggle('error', isError);
-  inlineAlertText.textContent = msg + ' ';
-  if (actionFn) {
-    const actionBtn = document.createElement('button');
-    actionBtn.className = 'inline-alert-action';
-    actionBtn.textContent = actionLabel;
-    actionBtn.onclick = (e) => {
-      e.stopPropagation();
-      actionFn();
-    };
-    inlineAlertText.appendChild(actionBtn);
+  inlineAlertText.textContent = msg;
+  const actionBtn = document.getElementById('inlineAlertAction');
+  if (actionBtn) {
+    if (actionFn) {
+      actionBtn.textContent = actionLabel;
+      actionBtn.style.display = 'inline-block';
+      actionBtn.onclick = (e) => {
+        e.stopPropagation();
+        actionFn();
+      };
+    } else {
+      actionBtn.style.display = 'none';
+    }
   }
   inlineAlert.style.display = 'flex';
 }
@@ -241,12 +244,11 @@ async function checkIpOnEnable() {
       await storageSet({ [K.enabled]: false });
       enableToggle.checked = false;
       updateStatus(false, '', '');
-      // Actionable inline banner & toast
+      // Actionable inline banner
       showInlineAlert('Spoof paused: Campus VPN required by settings.', true, () => {
         if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
         else window.open(chrome.runtime.getURL('options/options.html'));
       }, 'Open Settings');
-      showToast('Spoof paused: Connect to Campus VPN.', true, 6000);
       return;
     }
 
@@ -973,29 +975,37 @@ function showToast(msg, isError = false, duration = 2800, onClick = null) {
   // Use safe DOM manipulation to prevent XSS
   toastText.textContent = ''; // clear existing content
 
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+
   if (isError) {
-    toastText.textContent = msg;
+    svg.setAttribute('stroke-width', '2.2');
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', 'm21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z');
+    const l1 = document.createElementNS(svgNS, 'line');
+    l1.setAttribute('x1', '12'); l1.setAttribute('y1', '9'); l1.setAttribute('x2', '12'); l1.setAttribute('y2', '13');
+    const l2 = document.createElementNS(svgNS, 'line');
+    l2.setAttribute('x1', '12'); l2.setAttribute('y1', '17'); l2.setAttribute('x2', '12.01'); l2.setAttribute('y2', '17');
+    svg.appendChild(path);
+    svg.appendChild(l1);
+    svg.appendChild(l2);
   } else {
-    // Inject the SVG safely using DOM methods
-    const svgNS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("width", "14");
-    svg.setAttribute("height", "14");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("fill", "none");
-    svg.setAttribute("stroke", "currentColor");
-    svg.setAttribute("stroke-width", "3");
-    svg.setAttribute("stroke-linecap", "round");
-    svg.setAttribute("stroke-linejoin", "round");
-
-    const polyline = document.createElementNS(svgNS, "polyline");
-    polyline.setAttribute("points", "20 6 9 17 4 12");
+    svg.setAttribute('stroke-width', '3');
+    const polyline = document.createElementNS(svgNS, 'polyline');
+    polyline.setAttribute('points', '20 6 9 17 4 12');
     svg.appendChild(polyline);
-
-    toastText.appendChild(svg);
-    const textNode = document.createTextNode(' ' + msg);
-    toastText.appendChild(textNode);
   }
+
+  toastText.appendChild(svg);
+  const textNode = document.createTextNode(' ' + msg);
+  toastText.appendChild(textNode);
 
   // Detach any previous click handler before attaching a new one
   if (_toastClickHandler) {
