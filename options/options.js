@@ -101,31 +101,48 @@ async function renderSubmissionLog() {
   const log = Array.isArray(r[K.log]) ? r[K.log] : [];
 
   if (!log.length) {
-    logList.textContent = 'No submissions recorded yet.';
+    logList.innerHTML = '<div style="padding:16px; color:var(--text-muted); font-size:12px; text-align:center;">No submissions recorded yet.</div>';
     return;
   }
 
-  logList.textContent = '';
+  logList.innerHTML = '';
   log.forEach((entry) => {
     const row = document.createElement('div');
-    row.style.cssText = 'padding:6px 0; border-bottom:1px solid var(--border); font-size:12px; font-family:monospace; display:flex; gap:8px; align-items:center;';
+    row.className = 'log-row';
 
     const date   = new Date(entry.ts).toLocaleString();
     const lat    = entry.lat   ? parseFloat(entry.lat).toFixed(6)  : 'n/a';
     const lng    = entry.lng   ? parseFloat(entry.lng).toFixed(6)  : 'n/a';
     const prof   = entry.profile || 'mobile_gps';
     const status = entry.status || 'pending';
-    const emoji  = status === 'accepted' ? '\u2705' : status === 'rejected' ? '\u274c' : '\u23f3';
+
+    const left = document.createElement('div');
+    left.className = 'log-row-left';
 
     const badge = document.createElement('span');
-    badge.textContent = emoji;
-    badge.style.cssText = 'flex-shrink:0; font-size:14px;';
-    row.appendChild(badge);
+    if (status === 'accepted') {
+      badge.className = 'badge badge-success';
+      badge.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> OK';
+    } else if (status === 'rejected') {
+      badge.className = 'badge badge-danger';
+      badge.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> FAIL';
+    } else {
+      badge.className = 'badge badge-warning';
+      badge.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> WAIT';
+    }
+    left.appendChild(badge);
 
-    const text = document.createElement('span');
-    text.textContent = `${date}  |  ${lat}, ${lng}  |  ${prof}`;
-    row.appendChild(text);
+    const ts = document.createElement('span');
+    ts.style.fontWeight = '500';
+    ts.textContent = date;
+    left.appendChild(ts);
 
+    const coords = document.createElement('span');
+    coords.className = 'log-coords';
+    coords.textContent = `${lat}, ${lng} (${prof})`;
+
+    row.appendChild(left);
+    row.appendChild(coords);
     logList.appendChild(row);
   });
 }
@@ -275,44 +292,53 @@ async function renderCustomPresets() {
   }
 
   presets.forEach((p, idx) => {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.justifyContent = 'space-between';
-    row.style.padding = '8px 12px';
-    row.style.background = 'var(--border)';
-    row.style.borderRadius = '6px';
+    const card = document.createElement('div');
+    card.className = 'item-card';
 
-    const info = document.createElement('div');
-    info.style.display = 'flex';
-    info.style.flexDirection = 'column';
-    const nameEl = document.createElement('strong');
-    nameEl.textContent = p.name || 'Preset';
-    const detailEl = document.createElement('span');
-    detailEl.style.fontSize = '11.5px';
-    detailEl.style.color = 'var(--text-muted)';
-    const regexText = p.regex ? ` • Match: ${p.regex}` : '';
-    detailEl.textContent = `${p.lat}, ${p.lng}${regexText}`;
-    info.appendChild(nameEl);
-    info.appendChild(detailEl);
+    const left = document.createElement('div');
+    left.className = 'item-card-left';
+
+    const iconBox = document.createElement('div');
+    iconBox.className = 'item-card-icon';
+    iconBox.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14M21 7v14M6 11h2M6 15h2M16 11h2M16 15h2M10 21V11h4v10"/></svg>';
+    left.appendChild(iconBox);
+
+    const meta = document.createElement('div');
+    meta.className = 'item-card-meta';
+
+    const title = document.createElement('div');
+    title.className = 'item-card-title';
+    title.textContent = p.name || 'Preset';
+    meta.appendChild(title);
+
+    const sub = document.createElement('div');
+    sub.className = 'item-card-subtitle';
+    const coordTag = document.createElement('span');
+    coordTag.className = 'item-tag';
+    coordTag.textContent = `${p.lat}, ${p.lng}`;
+    sub.appendChild(coordTag);
+
+    if (p.regex) {
+      const regexTag = document.createElement('span');
+      regexTag.className = 'item-tag';
+      regexTag.textContent = `Regex: ${p.regex}`;
+      sub.appendChild(regexTag);
+    }
+    meta.appendChild(sub);
+    left.appendChild(meta);
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'btn';
-    delBtn.style.padding = '3px 8px';
-    delBtn.style.fontSize = '11px';
-    delBtn.style.background = 'var(--red-bg, rgba(239, 68, 68, 0.15))';
-    delBtn.style.color = 'var(--red, #EF4444)';
-    delBtn.style.border = '1px solid var(--red, #EF4444)';
-    delBtn.textContent = 'Delete';
+    delBtn.className = 'btn-danger';
+    delBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Delete';
     delBtn.onclick = async () => {
       presets.splice(idx, 1);
       await storageSet({ [K.customPresets]: presets });
       renderCustomPresets();
     };
 
-    row.appendChild(info);
-    row.appendChild(delBtn);
-    container.appendChild(row);
+    card.appendChild(left);
+    card.appendChild(delBtn);
+    container.appendChild(card);
   });
 }
 
@@ -374,44 +400,53 @@ async function renderTimetable() {
   }
 
   timetable.forEach((slot, idx) => {
-    const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.justifyContent = 'space-between';
-    row.style.padding = '8px 12px';
-    row.style.background = 'var(--border)';
-    row.style.borderRadius = '6px';
+    const card = document.createElement('div');
+    card.className = 'item-card';
 
-    const info = document.createElement('div');
-    info.style.display = 'flex';
-    info.style.flexDirection = 'column';
+    const left = document.createElement('div');
+    left.className = 'item-card-left';
+
+    const iconBox = document.createElement('div');
+    iconBox.className = 'item-card-icon';
+    iconBox.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+    left.appendChild(iconBox);
+
+    const meta = document.createElement('div');
+    meta.className = 'item-card-meta';
+
     const dayName = DAY_NAMES[slot.day] || 'Day ' + slot.day;
-    const titleEl = document.createElement('strong');
-    titleEl.textContent = `${dayName} (${slot.start} - ${slot.end}) • ${slot.subject || 'Class'}`;
-    const coordEl = document.createElement('span');
-    coordEl.style.fontSize = '11.5px';
-    coordEl.style.color = 'var(--text-muted)';
-    coordEl.textContent = `${slot.lat}, ${slot.lng}`;
-    info.appendChild(titleEl);
-    info.appendChild(coordEl);
+    const title = document.createElement('div');
+    title.className = 'item-card-title';
+    title.textContent = `${slot.subject || 'Class'} (${dayName})`;
+    meta.appendChild(title);
+
+    const sub = document.createElement('div');
+    sub.className = 'item-card-subtitle';
+    const timeTag = document.createElement('span');
+    timeTag.className = 'item-tag';
+    timeTag.textContent = `${slot.start} - ${slot.end}`;
+    sub.appendChild(timeTag);
+
+    const coordTag = document.createElement('span');
+    coordTag.className = 'item-tag';
+    coordTag.textContent = `${slot.lat}, ${slot.lng}`;
+    sub.appendChild(coordTag);
+
+    meta.appendChild(sub);
+    left.appendChild(meta);
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'btn';
-    delBtn.style.padding = '3px 8px';
-    delBtn.style.fontSize = '11px';
-    delBtn.style.background = 'var(--red-bg, rgba(239, 68, 68, 0.15))';
-    delBtn.style.color = 'var(--red, #EF4444)';
-    delBtn.style.border = '1px solid var(--red, #EF4444)';
-    delBtn.textContent = 'Delete';
+    delBtn.className = 'btn-danger';
+    delBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Delete';
     delBtn.onclick = async () => {
       timetable.splice(idx, 1);
       await storageSet({ [K.timetable]: timetable });
       renderTimetable();
     };
 
-    row.appendChild(info);
-    row.appendChild(delBtn);
-    container.appendChild(row);
+    card.appendChild(left);
+    card.appendChild(delBtn);
+    container.appendChild(card);
   });
 }
 
@@ -474,7 +509,7 @@ if (exportBackupBtn) {
     const status = document.getElementById('backupStatus');
     if (status) {
       status.style.color = 'var(--green)';
-      status.textContent = '✓ Configuration backup downloaded successfully.';
+      status.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Configuration backup downloaded successfully.';
     }
   });
 }
@@ -515,7 +550,7 @@ if (importBackupBtn && importFileInput) {
         const status = document.getElementById('backupStatus');
         if (status) {
           status.style.color = 'var(--green)';
-          status.textContent = '✓ Configuration imported successfully!';
+          status.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Configuration imported successfully!';
         }
       } catch (err) {
         alert('Failed to import backup: ' + err.message);

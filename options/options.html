@@ -207,6 +207,176 @@
       .container { grid-template-columns: 1fr; margin-top: 30px; }
       nav { display: none; }
     }
+
+    /* Form grids */
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 680px) {
+      .form-grid-2, .form-grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Polished item cards for presets and timetable */
+    .item-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .item-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    .item-card-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+    }
+    .item-card-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .item-card-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+    .item-card-title {
+      font-weight: 600;
+      font-size: 13.5px;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .item-card-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .item-tag {
+      font-family: 'SF Mono', 'Geist Mono', monospace;
+      font-size: 11px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: var(--text);
+    }
+    .btn-danger {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid var(--red);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-danger:hover {
+      background: var(--red);
+      color: #FFFFFF;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      line-height: 1;
+    }
+    .badge-success {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+    .badge-danger {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+    .badge-warning {
+      background: var(--warning-bg);
+      color: var(--warning-text);
+      border: 1px solid var(--warning-border);
+    }
+
+    /* Log rows */
+    .log-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .log-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', 'Geist Mono', monospace;
+      font-size: 12px;
+      transition: background 0.15s;
+    }
+    .log-row:hover {
+      background: var(--surface-subtle);
+    }
+    .log-row:last-child {
+      border-bottom: none;
+    }
+    .log-row-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
+    .log-coords {
+      color: var(--text-muted);
+      font-size: 11.5px;
+    }
   </style>
 </head>
 <body>
@@ -270,7 +440,7 @@
             </div>
             <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">When <strong>ON</strong>, spoofing is blocked if your IP is detected outside the campus network (Wi-Fi or VPN). Turn <strong>OFF</strong> to allow remote attendance from any network.</p>
             <div id="vpnLockWarning" style="display:none; margin-top:8px; padding:10px 12px; background:var(--warning-bg,#FFF3E0); border:1px solid var(--warning-border,#FFB74D); border-radius:6px; font-size:12px; color:var(--warning-text,#E65100);">
-              ⚠️ <strong>Network Lock is OFF.</strong> Spoofing will work from any network. Ensure you have Campus VPN connected if required for portal access, otherwise the portal may still reject you due to IP restrictions.
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px; display:inline-block;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><strong>Network Lock is OFF.</strong> Spoofing will work from any network. Ensure you have Campus VPN connected if required for portal access, otherwise the portal may still reject you due to IP restrictions.
             </div>
           </div>
 
@@ -302,11 +472,17 @@
         <p>Define custom campus facilities, research centers, or department classrooms with designated GPS coordinates. These will appear in the popup quick-select list and be automatically matched by attendance room sniffers.</p>
 
         <div class="card">
-          <div class="form-row" style="display:grid; grid-template-columns: 1.2fr 1fr 1fr 1.2fr; gap: 12px; margin-bottom: 12px;">
+          <div class="form-grid-2">
             <div>
               <label for="customPresetName">Facility / Room Name</label>
               <input type="text" id="customPresetName" placeholder="e.g. Lab Robotika" autocomplete="off" />
             </div>
+            <div>
+              <label for="customPresetRegex">Match Regex (Optional)</label>
+              <input type="text" id="customPresetRegex" placeholder="e.g. ROBOTIK|ROBOT" autocomplete="off" />
+            </div>
+          </div>
+          <div class="form-grid-2">
             <div>
               <label for="customPresetLat">Latitude</label>
               <input type="text" id="customPresetLat" placeholder="-7.279500" autocomplete="off" />
@@ -315,16 +491,15 @@
               <label for="customPresetLng">Longitude</label>
               <input type="text" id="customPresetLng" placeholder="112.798100" autocomplete="off" />
             </div>
-            <div>
-              <label for="customPresetRegex">Match Regex (Optional)</label>
-              <input type="text" id="customPresetRegex" placeholder="e.g. ROBOTIK|ROBOT" autocomplete="off" />
-            </div>
           </div>
-          <div style="display: flex; gap: 8px; justify-content: flex-end;">
-            <button class="btn" id="addCustomPresetBtn" style="padding: 6px 14px; font-size: 13px;">Add Custom Preset</button>
+          <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+            <button class="btn" id="addCustomPresetBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Custom Preset
+            </button>
           </div>
 
-          <div style="margin-top: 20px;">
+          <div style="margin-top: 24px;">
             <h3 style="margin-top: 0; margin-bottom: 12px;">Saved Presets</h3>
             <div id="customPresetsList" style="display: flex; flex-direction: column; gap: 8px;">
               <!-- Dynamic presets -->
@@ -338,7 +513,7 @@
         <p>Map your weekly class schedule to designated campus coordinates. When browsing your university attendance portal during a scheduled class slot, the extension automatically activates the matching coordinates.</p>
 
         <div class="card">
-          <div class="form-row" style="display:grid; grid-template-columns: 1.2fr 1fr 1fr 1.5fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+          <div class="form-grid-3">
             <div>
               <label for="ttDay">Day of Week</label>
               <select id="ttDay">
@@ -359,6 +534,8 @@
               <label for="ttEnd">End Time</label>
               <input type="time" id="ttEnd" value="09:30" />
             </div>
+          </div>
+          <div class="form-grid-3">
             <div>
               <label for="ttSubject">Subject / Facility</label>
               <input type="text" id="ttSubject" placeholder="e.g. Algoritma (TW1)" autocomplete="off" />
@@ -372,11 +549,14 @@
               <input type="text" id="ttLng" placeholder="112.793897" autocomplete="off" />
             </div>
           </div>
-          <div style="display: flex; justify-content: flex-end;">
-            <button class="btn" id="addTimetableBtn" style="padding: 6px 14px; font-size: 13px;">Add Timetable Slot</button>
+          <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+            <button class="btn" id="addTimetableBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+              Add Timetable Slot
+            </button>
           </div>
 
-          <div style="margin-top: 20px;">
+          <div style="margin-top: 24px;">
             <h3 style="margin-top: 0; margin-bottom: 12px;">Scheduled Classes</h3>
             <div id="timetableList" style="display: flex; flex-direction: column; gap: 8px;">
               <!-- Dynamic timetable slots -->
@@ -391,11 +571,17 @@
 
         <div class="card">
           <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <button class="btn" id="exportBackupBtn" style="padding: 8px 16px; font-size: 13px;">💾 Export Backup (JSON)</button>
-            <button class="btn" id="importBackupBtn" style="padding: 8px 16px; font-size: 13px; background: var(--surface); color: var(--text); border: 1px solid var(--border);">📂 Import Backup</button>
+            <button class="btn" id="exportBackupBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export Backup (JSON)
+            </button>
+            <button class="btn btn-secondary" id="importBackupBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Import Backup
+            </button>
             <input type="file" id="importFileInput" accept=".json" style="display: none;" />
           </div>
-          <div id="backupStatus" style="margin-top: 10px; font-size: 12px; color: var(--text-muted);"></div>
+          <div id="backupStatus" style="margin-top: 12px; font-size: 12px; color: var(--text-muted); display:flex; align-items:center; gap:6px;"></div>
         </div>
       </section>
 
@@ -546,12 +732,26 @@
 
       <section id="log">
         <h2>Submission Log</h2>
-        <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Last 50 coordinate submissions recorded locally. Never sent anywhere. Status: ✅ accepted · ❌ rejected · ⏳ pending.</p>
-        <div id="logList" style="max-height:320px; overflow-y:auto;">Loading...</div>
-        <div style="display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap;">
-          <button id="exportCsvBtn" style="padding:6px 14px; font-size:12px; border:1px solid var(--accent); background:var(--accent); color:var(--accent-text); border-radius:6px; cursor:pointer;">📥 Export CSV</button>
-          <button id="exportJsonBtn" style="padding:6px 14px; font-size:12px; border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:6px; cursor:pointer;">📥 Export JSON</button>
-          <button id="clearLogBtn" style="padding:6px 14px; font-size:12px; border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:6px; cursor:pointer;">Clear Log</button>
+        <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span>Last 50 coordinate submissions recorded locally:</span>
+          <span class="badge badge-success"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Accepted</span>
+          <span class="badge badge-danger"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Rejected</span>
+          <span class="badge badge-warning"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Pending</span>
+        </div>
+        <div id="logList" class="log-container" style="max-height:360px; overflow-y:auto; padding:0;">Loading...</div>
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap;">
+          <button id="exportCsvBtn" class="btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </button>
+          <button id="exportJsonBtn" class="btn btn-secondary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Export JSON
+          </button>
+          <button id="clearLogBtn" class="btn btn-secondary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Clear Log
+          </button>
         </div>
       </section>
 
