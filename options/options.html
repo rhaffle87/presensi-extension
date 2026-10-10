@@ -26,6 +26,7 @@
       --warning-text: #B45309;
       --warning-border: #FCD34D;
       --ring: rgba(37, 99, 235, 0.2);
+      color-scheme: light;
     }
 
     [data-theme="dark"] {
@@ -47,6 +48,7 @@
       --warning-text: #FBBF24;
       --warning-border: rgba(245, 158, 11, 0.3);
       --ring: rgba(59, 130, 246, 0.25);
+      color-scheme: dark;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -69,6 +71,7 @@
         --warning-text: #FBBF24;
         --warning-border: rgba(245, 158, 11, 0.3);
         --ring: rgba(59, 130, 246, 0.25);
+        color-scheme: dark;
       }
     }
 
@@ -146,13 +149,32 @@
       color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
     }
 
-    input[type="text"], input[type="number"], select {
+    input[type="text"], input[type="number"], input[type="time"], select {
       width: 100%; background: var(--bg); border: 1px solid var(--border);
       border-radius: 6px; padding: 10px 12px; color: var(--text);
       font-family: inherit; font-size: 13px; outline: none; transition: all 0.2s;
+      color-scheme: inherit;
     }
-    input[type="text"], input[type="number"] { font-family: 'SF Mono', 'Geist Mono', monospace; }
+    input[type="text"], input[type="number"], input[type="time"] { font-family: 'SF Mono', 'Geist Mono', monospace; }
     input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring); }
+
+    /* Time picker native indicator icon styling */
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.65;
+      transition: opacity 0.15s;
+    }
+    input[type="time"]::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
+    }
+    [data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+    }
+    @media (prefers-color-scheme: dark) {
+      [data-theme="system"] input[type="time"]::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+      }
+    }
 
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
