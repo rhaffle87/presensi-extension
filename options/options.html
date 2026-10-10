@@ -217,6 +217,8 @@
       <ul>
         <li><a href="#preferences">Preferences</a></li>
         <li><a href="#custom-presets">Custom Presets</a></li>
+        <li><a href="#timetable">Class Timetable</a></li>
+        <li><a href="#backup-restore">Backup &amp; Restore</a></li>
         <li><a href="#management">Management</a></li>
         <li><a href="#log">Submission Log</a></li>
         <li><a href="#systems">How It Works</a></li>
@@ -328,6 +330,72 @@
               <!-- Dynamic presets -->
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="timetable">
+        <h2>Weekly Academic Timetable</h2>
+        <p>Map your weekly class schedule to designated campus coordinates. When browsing your university attendance portal during a scheduled class slot, the extension automatically activates the matching coordinates.</p>
+
+        <div class="card">
+          <div class="form-row" style="display:grid; grid-template-columns: 1.2fr 1fr 1fr 1.5fr 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label for="ttDay">Day of Week</label>
+              <select id="ttDay">
+                <option value="1">Monday (Senin)</option>
+                <option value="2">Tuesday (Selasa)</option>
+                <option value="3">Wednesday (Rabu)</option>
+                <option value="4">Thursday (Kamis)</option>
+                <option value="5">Friday (Jumat)</option>
+                <option value="6">Saturday (Sabtu)</option>
+                <option value="0">Sunday (Minggu)</option>
+              </select>
+            </div>
+            <div>
+              <label for="ttStart">Start Time</label>
+              <input type="time" id="ttStart" value="07:00" />
+            </div>
+            <div>
+              <label for="ttEnd">End Time</label>
+              <input type="time" id="ttEnd" value="09:30" />
+            </div>
+            <div>
+              <label for="ttSubject">Subject / Facility</label>
+              <input type="text" id="ttSubject" placeholder="e.g. Algoritma (TW1)" autocomplete="off" />
+            </div>
+            <div>
+              <label for="ttLat">Latitude</label>
+              <input type="text" id="ttLat" placeholder="-7.2849915" autocomplete="off" />
+            </div>
+            <div>
+              <label for="ttLng">Longitude</label>
+              <input type="text" id="ttLng" placeholder="112.793897" autocomplete="off" />
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <button class="btn" id="addTimetableBtn" style="padding: 6px 14px; font-size: 13px;">Add Timetable Slot</button>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <h3 style="margin-top: 0; margin-bottom: 12px;">Scheduled Classes</h3>
+            <div id="timetableList" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Dynamic timetable slots -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="backup-restore">
+        <h2>Backup &amp; Restore Configuration</h2>
+        <p>Export your full configuration (custom presets, timetable schedules, default coordinates, and settings) to a portable JSON file, or restore a previously saved backup.</p>
+
+        <div class="card">
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <button class="btn" id="exportBackupBtn" style="padding: 8px 16px; font-size: 13px;">💾 Export Backup (JSON)</button>
+            <button class="btn" id="importBackupBtn" style="padding: 8px 16px; font-size: 13px; background: var(--surface); color: var(--text); border: 1px solid var(--border);">📂 Import Backup</button>
+            <input type="file" id="importFileInput" accept=".json" style="display: none;" />
+          </div>
+          <div id="backupStatus" style="margin-top: 10px; font-size: 12px; color: var(--text-muted);"></div>
         </div>
       </section>
 
@@ -480,7 +548,11 @@
         <h2>Submission Log</h2>
         <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">Last 50 coordinate submissions recorded locally. Never sent anywhere. Status: ✅ accepted · ❌ rejected · ⏳ pending.</p>
         <div id="logList" style="max-height:320px; overflow-y:auto;">Loading...</div>
-        <button id="clearLogBtn" style="margin-top:12px; padding:6px 14px; font-size:12px; border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:6px; cursor:pointer;">Clear Log</button>
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap;">
+          <button id="exportCsvBtn" style="padding:6px 14px; font-size:12px; border:1px solid var(--accent); background:var(--accent); color:var(--accent-text); border-radius:6px; cursor:pointer;">📥 Export CSV</button>
+          <button id="exportJsonBtn" style="padding:6px 14px; font-size:12px; border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:6px; cursor:pointer;">📥 Export JSON</button>
+          <button id="clearLogBtn" style="padding:6px 14px; font-size:12px; border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:6px; cursor:pointer;">Clear Log</button>
+        </div>
       </section>
 
     </main>

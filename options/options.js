@@ -13,6 +13,7 @@ const K = {
   deviceMode: 'cfg_dm',
   testMode: 'cfg_tm',
   customPresets: 'cfg_cp',
+  timetable: 'cfg_tt',
 };
 
 const optLat      = document.getElementById('optLat');
@@ -83,6 +84,9 @@ async function loadOptions() {
 
   // Render custom facility presets
   renderCustomPresets();
+
+  // Render weekly academic timetable
+  renderTimetable();
 }
 
 /**
@@ -193,6 +197,53 @@ if (clearLogBtn) {
   });
 }
 
+function downloadFile(content, fileName, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+}
+
+const exportCsvBtn = document.getElementById('exportCsvBtn');
+if (exportCsvBtn) {
+  exportCsvBtn.addEventListener('click', async () => {
+    const r = await storageGet([K.log]);
+    const log = Array.isArray(r[K.log]) ? r[K.log] : [];
+    if (!log.length) return alert('No submission log records to export.');
+
+    const headers = ['Timestamp', 'ISO_Date', 'Status', 'Latitude', 'Longitude', 'Profile'];
+    const rows = log.map(entry => [
+      entry.ts || '',
+      entry.ts ? new Date(entry.ts).toISOString() : '',
+      `"${(entry.status || 'pending').replace(/"/g, '""')}"`,
+      entry.lat != null ? entry.lat : '',
+      entry.lng != null ? entry.lng : '',
+      `"${(entry.profile || 'mobile_gps').replace(/"/g, '""')}"`
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    downloadFile(csvContent, `presensi-log-${dateStr}.csv`, 'text/csv;charset=utf-8;');
+  });
+}
+
+const exportJsonBtn = document.getElementById('exportJsonBtn');
+if (exportJsonBtn) {
+  exportJsonBtn.addEventListener('click', async () => {
+    const r = await storageGet([K.log]);
+    const log = Array.isArray(r[K.log]) ? r[K.log] : [];
+    if (!log.length) return alert('No submission log records to export.');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    downloadFile(JSON.stringify(log, null, 2), `presensi-log-${dateStr}.json`, 'application/json');
+  });
+}
+
 // VPN Lock toggle — show/hide warning callout in real-time
 if (optVpnLock) {
   const vpnWarning = document.getElementById('vpnLockWarning');
@@ -300,6 +351,179 @@ if (addPresetBtn) {
     if (lngEl)   lngEl.value = '';
     if (regexEl) regexEl.value = '';
     renderCustomPresets();
+  });
+}
+
+// ── Weekly Academic Timetable Scheduler ──────────────────────────────────
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+async function renderTimetable() {
+  const container = document.getElementById('timetableList');
+  if (!container) return;
+  const res = await storageGet([K.timetable]);
+  const timetable = Array.isArray(res[K.timetable]) ? res[K.timetable] : [];
+
+  container.innerHTML = '';
+  if (timetable.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.color = 'var(--text-muted)';
+    empty.style.fontSize = '12px';
+    empty.textContent = 'No timetable slots scheduled yet.';
+    container.appendChild(empty);
+    return;
+  }
+
+  timetable.forEach((slot, idx) => {
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.justifyContent = 'space-between';
+    row.style.padding = '8px 12px';
+    row.style.background = 'var(--border)';
+    row.style.borderRadius = '6px';
+
+    const info = document.createElement('div');
+    info.style.display = 'flex';
+    info.style.flexDirection = 'column';
+    const dayName = DAY_NAMES[slot.day] || 'Day ' + slot.day;
+    const titleEl = document.createElement('strong');
+    titleEl.textContent = `${dayName} (${slot.start} - ${slot.end}) • ${slot.subject || 'Class'}`;
+    const coordEl = document.createElement('span');
+    coordEl.style.fontSize = '11.5px';
+    coordEl.style.color = 'var(--text-muted)';
+    coordEl.textContent = `${slot.lat}, ${slot.lng}`;
+    info.appendChild(titleEl);
+    info.appendChild(coordEl);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn';
+    delBtn.style.padding = '3px 8px';
+    delBtn.style.fontSize = '11px';
+    delBtn.style.background = 'var(--red-bg, rgba(239, 68, 68, 0.15))';
+    delBtn.style.color = 'var(--red, #EF4444)';
+    delBtn.style.border = '1px solid var(--red, #EF4444)';
+    delBtn.textContent = 'Delete';
+    delBtn.onclick = async () => {
+      timetable.splice(idx, 1);
+      await storageSet({ [K.timetable]: timetable });
+      renderTimetable();
+    };
+
+    row.appendChild(info);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+const addTimetableBtn = document.getElementById('addTimetableBtn');
+if (addTimetableBtn) {
+  addTimetableBtn.addEventListener('click', async () => {
+    const dayEl     = document.getElementById('ttDay');
+    const startEl   = document.getElementById('ttStart');
+    const endEl     = document.getElementById('ttEnd');
+    const subjectEl = document.getElementById('ttSubject');
+    const latEl     = document.getElementById('ttLat');
+    const lngEl     = document.getElementById('ttLng');
+
+    const day     = parseInt(dayEl?.value, 10);
+    const start   = startEl?.value.trim();
+    const end     = endEl?.value.trim();
+    const subject = subjectEl?.value.trim();
+    const lat     = latEl?.value.trim();
+    const lng     = lngEl?.value.trim();
+
+    if (isNaN(day) || day < 0 || day > 6) return alert('Select a valid day of the week');
+    if (!start || !end) return alert('Provide both start and end time');
+    if (!subject) return alert('Enter a subject or class name');
+    const nLat = parseFloat(lat);
+    const nLng = parseFloat(lng);
+    if (!lat || isNaN(nLat) || nLat < -90 || nLat > 90) return alert('Enter a valid latitude between -90 and 90');
+    if (!lng || isNaN(nLng) || nLng < -180 || nLng > 180) return alert('Enter a valid longitude between -180 and 180');
+
+    const res = await storageGet([K.timetable]);
+    const timetable = Array.isArray(res[K.timetable]) ? res[K.timetable] : [];
+    timetable.push({
+      id: 'tt_' + Date.now(),
+      day,
+      start,
+      end,
+      subject,
+      lat: nLat,
+      lng: nLng,
+    });
+
+    await storageSet({ [K.timetable]: timetable });
+    if (subjectEl) subjectEl.value = '';
+    renderTimetable();
+  });
+}
+
+// ── Backup & Restore Configuration ───────────────────────────────────────
+const exportBackupBtn = document.getElementById('exportBackupBtn');
+if (exportBackupBtn) {
+  exportBackupBtn.addEventListener('click', async () => {
+    const keysToBackup = [K.lat, K.lng, K.domain, K.theme, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.customPresets, K.timetable];
+    const data = await storageGet(keysToBackup);
+    const backupPayload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      config: data
+    };
+    const dateStr = new Date().toISOString().slice(0, 10);
+    downloadFile(JSON.stringify(backupPayload, null, 2), `presensi-backup-${dateStr}.json`, 'application/json');
+    const status = document.getElementById('backupStatus');
+    if (status) {
+      status.style.color = 'var(--green)';
+      status.textContent = '✓ Configuration backup downloaded successfully.';
+    }
+  });
+}
+
+const importBackupBtn = document.getElementById('importBackupBtn');
+const importFileInput = document.getElementById('importFileInput');
+if (importBackupBtn && importFileInput) {
+  importBackupBtn.addEventListener('click', () => importFileInput.click());
+
+  importFileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        const config = parsed.config || parsed;
+        if (!config || typeof config !== 'object') {
+          throw new Error('Invalid backup file structure.');
+        }
+
+        const dataToSave = {};
+        if (config[K.lat]) dataToSave[K.lat] = config[K.lat];
+        if (config[K.lng]) dataToSave[K.lng] = config[K.lng];
+        if (config[K.domain]) dataToSave[K.domain] = config[K.domain];
+        if (config[K.theme]) dataToSave[K.theme] = config[K.theme];
+        if (config[K.profile]) dataToSave[K.profile] = config[K.profile];
+        if (typeof config[K.vpnLock] === 'boolean') dataToSave[K.vpnLock] = config[K.vpnLock];
+        if (config[K.deviceMode]) dataToSave[K.deviceMode] = config[K.deviceMode];
+        if (typeof config[K.testMode] === 'boolean') dataToSave[K.testMode] = config[K.testMode];
+        if (Array.isArray(config[K.customPresets])) dataToSave[K.customPresets] = config[K.customPresets];
+        if (Array.isArray(config[K.timetable])) dataToSave[K.timetable] = config[K.timetable];
+
+        await storageSet(dataToSave);
+        await loadOptions();
+
+        const status = document.getElementById('backupStatus');
+        if (status) {
+          status.style.color = 'var(--green)';
+          status.textContent = '✓ Configuration imported successfully!';
+        }
+      } catch (err) {
+        alert('Failed to import backup: ' + err.message);
+      } finally {
+        importFileInput.value = '';
+      }
+    };
+    reader.readAsText(file);
   });
 }
 

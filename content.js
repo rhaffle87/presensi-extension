@@ -713,12 +713,44 @@
         if (!currentConfig.enabled) {
           _stopSensorSpoof();
         } else {
+          // Check academic timetable schedule match
+          if (Array.isArray(currentConfig.timetable) && currentConfig.timetable.length > 0) {
+            const slot = checkTimetableAutoMatch(currentConfig.timetable);
+            if (slot && slot.lat != null && slot.lng != null) {
+              currentConfig.lat = slot.lat;
+              currentConfig.lng = slot.lng;
+              currentConfig._timetableMatched = slot.subject || 'Timetable Slot';
+            }
+          }
           // If enabled, apply the device spoofing to navigator
           applyDeviceSpoofing(currentConfig.deviceMode);
         }
       } catch (_) {}
     }
   }, true);
+
+  function checkTimetableAutoMatch(timetable) {
+    if (!timetable || !Array.isArray(timetable) || timetable.length === 0) return null;
+    const now = new Date();
+    // Academic time in WIB (UTC+7)
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const wibDate = new Date(utcMs + (7 * 3600000));
+    const day = wibDate.getDay();
+    const currentMinutes = wibDate.getHours() * 60 + wibDate.getMinutes();
+
+    for (let i = 0; i < timetable.length; i++) {
+      const slot = timetable[i];
+      if (slot.day !== day) continue;
+      const [startH, startM] = (slot.start || '00:00').split(':').map(Number);
+      const [endH, endM] = (slot.end || '23:59').split(':').map(Number);
+      const startMin = (startH || 0) * 60 + (startM || 0);
+      const endMin = (endH || 0) * 60 + (endM || 0);
+      if (currentMinutes >= startMin && currentMinutes <= endMin) {
+        return slot;
+      }
+    }
+    return null;
+  }
 
   // Request the initial config, passing our secure session token as a primitive string
   // to avoid Firefox Xray wrapper object cloning issues.

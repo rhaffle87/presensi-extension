@@ -33,7 +33,7 @@ describe('1. Storage Key Schema Parity', () => {
     const popupK = extractKObject(path.join(rootDir, 'popup.js'));
     const optK = extractKObject(path.join(rootDir, 'options', 'options.js'));
 
-    const requiredKeys = ['enabled', 'lat', 'lng', 'domain', 'profile', 'vpnLock', 'deviceMode', 'testMode', 'customPresets'];
+    const requiredKeys = ['enabled', 'lat', 'lng', 'domain', 'profile', 'vpnLock', 'deviceMode', 'testMode', 'customPresets', 'timetable'];
 
     requiredKeys.forEach(key => {
       assert.ok(swK[key], `Missing ${key} in service-worker.js`);
@@ -350,4 +350,137 @@ describe('10. Manifest Commands & Shortcut Integrity', () => {
     assert.ok(manifest.commands['toggle-spoof'].description);
   });
 });
+
+describe('11. Attendance Log CSV Formatter & Sanitizer Verification', () => {
+  function formatCsv(logEntries) {
+    const headers = ['Timestamp', 'ISO_Date', 'Status', 'Latitude', 'Longitude', 'Profile'];
+    const rows = logEntries.map(entry => [
+      entry.ts || '',
+      entry.ts ? new Date(entry.ts).toISOString() : '',
+      `"${String(entry.status || 'pending').replace(/"/g, '""')}"`,
+      entry.lat != null ? entry.lat : '',
+      entry.lng != null ? entry.lng : '',
+      `"${String(entry.profile || 'mobile_gps').replace(/"/g, '""')}"`
+    ]);
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+  }
+
+  test('Correctly serializes log entries with CSV header and escaped quotes', () => {
+    const mockLog = [
+      { ts: 1773000000000, status: 'accepted', lat: -7.2849915, lng: 112.793897, profile: 'mobile_gps' },
+      { ts: 1773003600000, status: 'rejected', lat: -7.2852792, lng: 112.7952975, profile: 'desktop' }
+    ];
+    const csv = formatCsv(mockLog);
+    const lines = csv.split('\r\n');
+    assert.strictEqual(lines.length, 3);
+    assert.strictEqual(lines[0], 'Timestamp,ISO_Date,Status,Latitude,Longitude,Profile');
+    assert.ok(lines[1].includes('"accepted"'));
+    assert.ok(lines[1].includes('-7.2849915'));
+    assert.ok(lines[2].includes('"rejected"'));
+  });
+
+  test('Sanitizes quotes and malicious characters in status strings', () => {
+    const mockLog = [
+      { ts: 1773000000000, status: 'hack",injection', lat: -7.2, lng: 112.7, profile: 'test' }
+    ];
+    const csv = formatCsv(mockLog);
+    assert.ok(csv.includes('"hack"",injection"'));
+  });
+});
+
+describe('12. Academic Timetable Scheduler Matching Logic', () => {
+  function matchTimetableSlot(timetable, currentDay, currentHour, currentMinute) {
+    if (!Array.isArray(timetable)) return null;
+    const currentMin = currentHour * 60 + currentMinute;
+    for (let i = 0; i < timetable.length; i++) {
+      const slot = timetable[i];
+      if (slot.day !== currentDay) continue;
+      const [startH, startM] = (slot.start || '00:00').split(':').map(Number);
+      const [endH, endM] = (slot.end || '23:59').split(':').map(Number);
+      const startMin = startH * 60 + (startM || 0);
+      const endMin = endH * 60 + (endM || 0);
+      if (currentMin >= startMin && currentMin <= endMin) {
+        return slot;
+      }
+    }
+    return null;
+  }
+
+  const sampleTimetable = [
+    { day: 1, start: '07:00', end: '09:30', subject: 'Algoritma (TW1)', lat: -7.2849915, lng: 112.793897 },
+    { day: 1, start: '10:00', end: '12:30', subject: 'Basis Data (TW2)', lat: -7.2852792, lng: 112.7952975 },
+    { day: 3, start: '13:00', end: '15:30', subject: 'Jaringan Komputer (Class C)', lat: -7.28479, lng: 112.7957 }
+  ];
+
+  test('Matches active slot on Monday at 08:15', () => {
+    const slot = matchTimetableSlot(sampleTimetable, 1, 8, 15);
+    assert.ok(slot);
+    assert.strictEqual(slot.subject, 'Algoritma (TW1)');
+    assert.strictEqual(slot.lat, -7.2849915);
+  });
+
+  test('Matches boundary time (exact start 07:00)', () => {
+    const slot = matchTimetableSlot(sampleTimetable, 1, 7, 0);
+    assert.ok(slot);
+    assert.strictEqual(slot.subject, 'Algoritma (TW1)');
+  });
+
+  test('Returns null during break between classes (09:45)', () => {
+    const slot = matchTimetableSlot(sampleTimetable, 1, 9, 45);
+    assert.strictEqual(slot, null);
+  });
+
+  test('Returns null on different day (Tuesday at 08:15)', () => {
+    const slot = matchTimetableSlot(sampleTimetable, 2, 8, 15);
+    assert.strictEqual(slot, null);
+  });
+});
+
+describe('13. Backup & Restore JSON Schema Validation', () => {
+  function validateBackupPayload(rawJson, validKeys) {
+    if (!rawJson || typeof rawJson !== 'string') return { valid: false, error: 'Empty or invalid payload' };
+    try {
+      const parsed = JSON.parse(rawJson);
+      const config = parsed.config || parsed;
+      if (!config || typeof config !== 'object') {
+        return { valid: false, error: 'Config object missing' };
+      }
+      const extracted = {};
+      validKeys.forEach(k => {
+        if (config[k] !== undefined) extracted[k] = config[k];
+      });
+      return { valid: true, config: extracted };
+    } catch (e) {
+      return { valid: false, error: e.message };
+    }
+  }
+
+  const validKeys = ['cfg_a', 'cfg_o', 'cfg_d', 'cfg_t', 'cfg_ap', 'cfg_cp', 'cfg_tt'];
+
+  test('Validates and extracts valid backup JSON', () => {
+    const backupJson = JSON.stringify({
+      version: 1,
+      exportedAt: '2026-10-10T00:00:00.000Z',
+      config: {
+        cfg_a: '-7.285',
+        cfg_o: '112.795',
+        cfg_cp: [{ name: 'Lab', lat: -7.28, lng: 112.79 }],
+        cfg_tt: [{ day: 1, start: '07:00', end: '09:00', subject: 'Math', lat: -7.28, lng: 112.79 }]
+      }
+    });
+
+    const result = validateBackupPayload(backupJson, validKeys);
+    assert.strictEqual(result.valid, true);
+    assert.strictEqual(result.config.cfg_a, '-7.285');
+    assert.strictEqual(result.config.cfg_cp.length, 1);
+    assert.strictEqual(result.config.cfg_tt.length, 1);
+  });
+
+  test('Rejects malformed JSON syntax gracefully', () => {
+    const result = validateBackupPayload('{ broken json: true', validKeys);
+    assert.strictEqual(result.valid, false);
+    assert.ok(result.error);
+  });
+});
+
 

@@ -16,7 +16,8 @@ const FILES_TO_COPY = [
   'compat.js',
   'storage-bridge.js',
   'README.md',
-  'INSTALL.md'
+  'INSTALL.md',
+  'PRIVACY.md'
 ];
 
 // Directories to copy
@@ -123,14 +124,52 @@ async function build() {
   const zipBytes = fs.statSync(RELEASE_ZIP).size;
   console.log(`  release.zip created (${(zipBytes / 1024).toFixed(1)} KB)`);
 
-  // 6. CRX packaging (optional, requires Google Chrome installed)
+  // 6. Packaging sanitized Chrome Web Store ZIP (dist/chrome-webstore.zip)
+  console.log('Packaging chrome-webstore.zip...');
+  const CWS_ZIP = path.join(OUT_DIR, 'chrome-webstore.zip');
+  const cwsOutput = fs.createWriteStream(CWS_ZIP);
+  const cwsArchive = archiver('zip', { zlib: { level: 9 } });
+
+  await new Promise((resolve, reject) => {
+    cwsOutput.on('close', resolve);
+    cwsArchive.on('error', reject);
+    cwsArchive.pipe(cwsOutput);
+    cwsArchive.glob('**/*', {
+      cwd: OUT_DIR,
+      ignore: ['*.zip', '*.crx']
+    });
+    cwsArchive.finalize();
+  });
+  console.log(`  chrome-webstore.zip created (${(fs.statSync(CWS_ZIP).size / 1024).toFixed(1)} KB)`);
+
+  // 7. Packaging Firefox AMO ZIP (dist/firefox-amo.zip)
+  console.log('Packaging firefox-amo.zip...');
+  const AMO_ZIP = path.join(OUT_DIR, 'firefox-amo.zip');
+  const amoOutput = fs.createWriteStream(AMO_ZIP);
+  const amoArchive = archiver('zip', { zlib: { level: 9 } });
+
+  await new Promise((resolve, reject) => {
+    amoOutput.on('close', resolve);
+    amoArchive.on('error', reject);
+    amoArchive.pipe(amoOutput);
+    amoArchive.glob('**/*', {
+      cwd: OUT_DIR,
+      ignore: ['*.zip', '*.crx']
+    });
+    amoArchive.finalize();
+  });
+  console.log(`  firefox-amo.zip created (${(fs.statSync(AMO_ZIP).size / 1024).toFixed(1)} KB)`);
+
+  // 8. CRX packaging (optional, requires Google Chrome installed)
   await packCrx();
 
   console.log('\nBuild complete!');
-  console.log(`  release.zip → ${RELEASE_ZIP}`);
+  console.log(`  release.zip         → ${RELEASE_ZIP}`);
+  console.log(`  chrome-webstore.zip → ${CWS_ZIP}`);
+  console.log(`  firefox-amo.zip     → ${AMO_ZIP}`);
   if (fs.existsSync(CRX_FILE)) {
     const crxKB = (fs.statSync(CRX_FILE).size / 1024).toFixed(1);
-    console.log(`  .crx        → ${CRX_FILE} (${crxKB} KB)`);
+    console.log(`  .crx                → ${CRX_FILE} (${crxKB} KB)`);
   }
 }
 
