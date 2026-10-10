@@ -808,8 +808,12 @@ async function renderLastSubmission() {
   const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   const status  = entry.status || 'pending';
-  const emoji   = status === 'accepted' ? '✅' : status === 'rejected' ? '❌' : '⏳';
-  diagLastSubmit.textContent = `${emoji} ${dateStr} ${timeStr}`;
+  const icon = status === 'accepted'
+    ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px; margin-right:3px;"><polyline points="20 6 9 17 4 12"/></svg>'
+    : status === 'rejected'
+      ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px; margin-right:3px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+      : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px; margin-right:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+  diagLastSubmit.innerHTML = `${icon}${dateStr} ${timeStr}`;
   diagLastSubmit.className = status === 'accepted'
     ? 'diag-val ok'
     : status === 'rejected'

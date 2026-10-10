@@ -988,13 +988,13 @@
             <button class="hud-btn-toggle" title="Minimize">—</button>
           </div>
           <div class="hud-title" style="font-weight:600;color:#fff;">Active Class</div>
-          <div class="hud-pill green">⏳ --:--</div>
+          <div class="hud-pill green">--:--</div>
           <div class="hud-rule hud-sub">Tracking session...</div>
           <div class="hud-room-badge" style="display:none;"></div>
           <div class="hud-action-row">
             <input type="text" maxlength="6" class="hud-code-input" placeholder="Kode OTP" title="Masukkan 6-digit kode presensi" />
             <button class="hud-btn-checkin">Hadir</button>
-            <button class="hud-btn-qr" title="Inject QR Code Image" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:11px;">📷 QR</button>
+            <button class="hud-btn-qr" title="Inject QR Code Image" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 8px;cursor:pointer;font-size:11px;display:inline-flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> QR</button>
             <input type="file" class="hud-qr-file" accept="image/*" style="display:none;" />
           </div>
           <div class="hud-status-msg"></div>
@@ -1055,7 +1055,7 @@
             reader.onload = (revt) => {
               setVirtualQrImage(revt.target.result);
               if (_hudContainer._refs.statusMsg) {
-                _hudContainer._refs.statusMsg.textContent = '📷 QR loaded to Virtual Cam!';
+                _hudContainer._refs.statusMsg.textContent = 'QR loaded to Virtual Cam!';
                 _hudContainer._refs.statusMsg.style.color = '#38bdf8';
               }
             };
@@ -1116,7 +1116,7 @@
         if (res.ok) {
           apiSuccess = true;
           if (refs.statusMsg) {
-            refs.statusMsg.textContent = '✓ Presensi berhasil!';
+            refs.statusMsg.textContent = 'Presensi berhasil!';
             refs.statusMsg.style.color = '#4ade80';
           }
           _sendSubmitTelemetry(pos.coords.latitude, pos.coords.longitude);
@@ -1125,7 +1125,7 @@
           const errData = await res.json().catch(() => ({}));
           const errMsg = errData.message || `Gagal HTTP ${res.status}`;
           if (refs.statusMsg) {
-            refs.statusMsg.textContent = `✕ ${errMsg}`;
+            refs.statusMsg.textContent = errMsg;
             refs.statusMsg.style.color = '#f87171';
           }
         }
@@ -1231,19 +1231,19 @@
     if (refs.title) refs.title.textContent = `${course}${room}`;
     if (refs.pill) {
       refs.pill.className = `hud-pill ${pillClass}`;
-      refs.pill.textContent = `⏳ ${timeFormatted}`;
+      refs.pill.textContent = timeFormatted;
     }
     if (refs.rule) refs.rule.textContent = ruleText;
     if (refs.roomBadge) {
       if (currentConfig && currentConfig._autoRoomMatched) {
         refs.roomBadge.style.display = 'inline-block';
-        refs.roomBadge.textContent = `📍 Auto-Room: ${currentConfig._autoRoomMatched}`;
+        refs.roomBadge.textContent = `Auto-Room: ${currentConfig._autoRoomMatched}`;
       } else {
         refs.roomBadge.style.display = 'none';
       }
     }
     if (refs.spoof) {
-      refs.spoof.innerHTML = cfg ? `<span style="color:#4ade80;">✓ Active</span>` : `<span style="color:#9ca3af;">Off</span>`;
+      refs.spoof.innerHTML = cfg ? `<span style="color:#4ade80;">Active</span>` : `<span style="color:#9ca3af;">Off</span>`;
     }
   }
 
