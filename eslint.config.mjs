@@ -23,6 +23,7 @@ export default [
         requestAnimationFrame: "readonly",
         Image: "readonly",
         FileReader: "readonly",
+        Blob: "readonly",
         URL: "readonly",
         AbortController: "readonly",
         Response: "readonly",

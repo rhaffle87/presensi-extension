@@ -26,9 +26,10 @@
     deviceMode: 'cfg_dm',
     testMode: 'cfg_tm',
     customPresets: 'cfg_cp',
+    timetable: 'cfg_tt',
   };
 
-  const ALL_KEYS = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.customPresets];
+  const ALL_KEYS = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.customPresets, K.timetable];
 
   /**
    * Builds the normalized config object from raw chrome.storage payload.
@@ -45,6 +46,7 @@
       deviceMode:    result[K.deviceMode]    || 'desktop',
       testMode:      result[K.testMode]      === true,
       customPresets: result[K.customPresets] || [],
+      timetable:     result[K.timetable]     || [],
     };
   }
 

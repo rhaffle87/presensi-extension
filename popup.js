@@ -97,6 +97,7 @@ const K = {
   deviceMode: 'cfg_dm',
   testMode: 'cfg_tm',
   customPresets: 'cfg_cp',
+  timetable: 'cfg_tt',
 };
 
 // ── Velocity / Impossible Travel Limiter ───────────────────────────────

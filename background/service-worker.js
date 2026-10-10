@@ -23,6 +23,7 @@ const K = {
   deviceMode: 'cfg_dm',
   testMode: 'cfg_tm',
   customPresets: 'cfg_cp',
+  timetable: 'cfg_tt',
 };
 
 
@@ -39,6 +40,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     defaults[K.deviceMode] = 'desktop';
     defaults[K.testMode] = false;
     defaults[K.customPresets] = [];
+    defaults[K.timetable] = [];
     chrome.storage.local.set(defaults);
   }
 
@@ -78,6 +80,17 @@ chrome.runtime.onInstalled.addListener(async (details) => {
         world: 'ISOLATED'
       }).catch(() => {});
     }
+  } catch (_) {}
+});
+
+// Re-verify alarms on browser startup / sleep wake-up
+chrome.runtime.onStartup.addListener(() => {
+  try {
+    chrome.alarms.get('presensi_auto_check', (alarm) => {
+      if (!alarm) {
+        chrome.alarms.create('presensi_auto_check', { periodInMinutes: 15 });
+      }
+    });
   } catch (_) {}
 });
 
@@ -218,7 +231,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // ── Config fetch (popup / content) ─────────────────────────────────────────
   if (message.type === 'GET_CONFIG') {
-    chrome.storage.local.get([K.enabled, K.lat, K.lng, K.domain, K.profile, K.deviceMode, K.testMode, K.customPresets], (result) => {
+    chrome.storage.local.get([K.enabled, K.lat, K.lng, K.domain, K.profile, K.deviceMode, K.testMode, K.customPresets, K.timetable], (result) => {
       if (chrome.runtime.lastError) {
         sendResponse({ success: false, error: chrome.runtime.lastError.message });
         return;
@@ -234,6 +247,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           deviceMode:    result[K.deviceMode]    || 'desktop',
           testMode:      result[K.testMode]      === true,
           customPresets: result[K.customPresets] || [],
+          timetable:     result[K.timetable]     || [],
         }
       });
     });
