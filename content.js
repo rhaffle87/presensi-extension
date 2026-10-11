@@ -117,7 +117,8 @@
   function isDomainAllowed(hostname, targetDomain, testMode) {
     if (testMode === true) return true;
     if (!hostname) return false;
-    if (hostname === targetDomain) return true;
+    if (hostname === targetDomain || (targetDomain && hostname.endsWith('.' + targetDomain))) return true;
+    if (hostname === 'portal.university.edu' || hostname.endsWith('.university.edu')) return true;
     for (let i = 0; i < DIAGNOSTIC_DOMAINS.length; i++) {
       const d = DIAGNOSTIC_DOMAINS[i];
       if (hostname === d || hostname.endsWith('.' + d)) return true;
@@ -725,6 +726,7 @@
           // If enabled, apply the device spoofing to navigator
           applyDeviceSpoofing(currentConfig.deviceMode);
         }
+        _installNetworkInterceptors();
       } catch (_) {}
     }
   }, true);
@@ -1291,97 +1293,118 @@
     } catch (_) {}
   }
 
-  // Intercept window.fetch
-  if (window.fetch) {
-    const _localFetch = _origFetch || window.fetch;
-    const fetchProxy = new Proxy(_localFetch, {
-      apply(target, thisArg, args) {
-        let [resource, init] = args;
-        const cfg = getSpoofConfig();
-        const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
+  // ── Network Interception Scope & Portal Check ─────────────────────────────
+  let _networkInterceptorsInstalled = false;
 
-        // Double-lock payload rewrite for attendance submission
-        if (cfg && url.includes('/api/presensi/tm/') && url.includes('/mahasiswa/self')) {
-          try {
-            if (init && init.body && typeof init.body === 'string') {
-              const parsed = JSON.parse(init.body);
+  function _isPortalDomain() {
+    const currentHost = window.location.hostname;
+    if (!currentHost) return false;
+    const targetDomain = (currentConfig && currentConfig.targetDomain) ? currentConfig.targetDomain.toLowerCase() : 'portal.university.edu';
+    return (
+      currentHost === targetDomain ||
+      currentHost.endsWith('.' + targetDomain) ||
+      currentHost === 'portal.university.edu' ||
+      currentHost.endsWith('.university.edu')
+    );
+  }
+
+  function _installNetworkInterceptors() {
+    if (_networkInterceptorsInstalled) return;
+    if (!_isPortalDomain()) return;
+    _networkInterceptorsInstalled = true;
+
+    // Intercept window.fetch
+    if (window.fetch) {
+      const _localFetch = _origFetch || window.fetch;
+      const fetchProxy = new Proxy(_localFetch, {
+        apply(target, thisArg, args) {
+          let [resource, init] = args;
+          const cfg = getSpoofConfig();
+          const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
+
+          // Double-lock payload rewrite for attendance submission
+          if (cfg && typeof url === 'string' && url.includes('/api/presensi/tm/') && url.includes('/mahasiswa/self')) {
+            try {
+              if (init && init.body && typeof init.body === 'string') {
+                const parsed = JSON.parse(init.body);
+                const pos = buildPosition(cfg.lat, cfg.lng);
+                parsed.latitude = pos.coords.latitude;
+                parsed.longitude = pos.coords.longitude;
+                init = Object.assign({}, init, { body: JSON.stringify(parsed) });
+                args[1] = init;
+                _sendSubmitTelemetry(pos.coords.latitude, pos.coords.longitude);
+              }
+            } catch (_) {}
+          }
+
+          const promise = Reflect.apply(target, thisArg, args);
+          if (typeof url === 'string' && url.includes('/api/presensi/')) {
+            promise.then(res => {
+              try {
+                res.clone().text().then(txt => _sniffPresensiPayload(url, txt));
+              } catch (_) {}
+            }).catch(() => {});
+          }
+          return promise;
+        }
+      });
+      _cloak(fetchProxy, 'function fetch() { [native code] }');
+      try { window.fetch = fetchProxy; } catch (_) {}
+    }
+
+    // Intercept XMLHttpRequest
+    if (window.XMLHttpRequest) {
+      const _origOpen = XMLHttpRequest.prototype.open;
+      const _origSend = XMLHttpRequest.prototype.send;
+
+      const openProxy = new Proxy(_origOpen, {
+        apply(target, thisArg, args) {
+          thisArg._requestUrl = args[1];
+          thisArg._requestMethod = args[0];
+          return Reflect.apply(target, thisArg, args);
+        }
+      });
+
+      const sendProxy = new Proxy(_origSend, {
+        apply(target, thisArg, args) {
+          let body = args[0];
+          const cfg = getSpoofConfig();
+          const url = thisArg._requestUrl || '';
+
+          if (cfg && typeof url === 'string' && url.includes('/api/presensi/tm/') && url.includes('/mahasiswa/self') && typeof body === 'string') {
+            try {
+              const parsed = JSON.parse(body);
               const pos = buildPosition(cfg.lat, cfg.lng);
               parsed.latitude = pos.coords.latitude;
               parsed.longitude = pos.coords.longitude;
-              init = Object.assign({}, init, { body: JSON.stringify(parsed) });
-              args[1] = init;
+              args[0] = JSON.stringify(parsed);
               _sendSubmitTelemetry(pos.coords.latitude, pos.coords.longitude);
-            }
-          } catch (_) {}
-        }
-
-        const promise = Reflect.apply(target, thisArg, args);
-        if (url.includes('/api/presensi/')) {
-          promise.then(res => {
-            try {
-              res.clone().text().then(txt => _sniffPresensiPayload(url, txt));
             } catch (_) {}
-          }).catch(() => {});
+          }
+
+          if (typeof url === 'string' && url.includes('/api/presensi/')) {
+            thisArg.addEventListener('load', () => {
+              _sniffPresensiPayload(url, thisArg.responseText);
+            });
+          }
+          return Reflect.apply(target, thisArg, args);
         }
-        return promise;
-      }
-    });
-    _cloak(fetchProxy, 'function fetch() { [native code] }');
-    try { window.fetch = fetchProxy; } catch (_) {}
+      });
+
+      _cloak(openProxy, 'function open() { [native code] }');
+      _cloak(sendProxy, 'function send() { [native code] }');
+      try {
+        XMLHttpRequest.prototype.open = openProxy;
+        XMLHttpRequest.prototype.send = sendProxy;
+      } catch (_) {}
+    }
   }
 
-  // Intercept XMLHttpRequest
-  if (window.XMLHttpRequest) {
-    const _origOpen = XMLHttpRequest.prototype.open;
-    const _origSend = XMLHttpRequest.prototype.send;
-
-    const openProxy = new Proxy(_origOpen, {
-      apply(target, thisArg, args) {
-        thisArg._requestUrl = args[1];
-        thisArg._requestMethod = args[0];
-        return Reflect.apply(target, thisArg, args);
-      }
-    });
-
-    const sendProxy = new Proxy(_origSend, {
-      apply(target, thisArg, args) {
-        let body = args[0];
-        const cfg = getSpoofConfig();
-        const url = thisArg._requestUrl || '';
-
-        if (cfg && url.includes('/api/presensi/tm/') && url.includes('/mahasiswa/self') && typeof body === 'string') {
-          try {
-            const parsed = JSON.parse(body);
-            const pos = buildPosition(cfg.lat, cfg.lng);
-            parsed.latitude = pos.coords.latitude;
-            parsed.longitude = pos.coords.longitude;
-            args[0] = JSON.stringify(parsed);
-            _sendSubmitTelemetry(pos.coords.latitude, pos.coords.longitude);
-          } catch (_) {}
-        }
-
-        if (url.includes('/api/presensi/')) {
-          thisArg.addEventListener('load', () => {
-            _sniffPresensiPayload(url, thisArg.responseText);
-          });
-        }
-        return Reflect.apply(target, thisArg, args);
-      }
-    });
-
-    _cloak(openProxy, 'function open() { [native code] }');
-    _cloak(sendProxy, 'function send() { [native code] }');
-    try {
-      XMLHttpRequest.prototype.open = openProxy;
-      XMLHttpRequest.prototype.send = sendProxy;
-    } catch (_) {}
-  }
+  // Attempt early installation on initial script evaluation
+  _installNetworkInterceptors();
 
   // ── Phase 5: DOM Result Observer (accepted / rejected) ────────────────────
-  const TARGET_DOMAIN = (currentConfig && currentConfig.targetDomain) || 'portal.university.edu';
-  if (window.location.hostname === TARGET_DOMAIN ||
-      window.location.hostname.endsWith('.' + TARGET_DOMAIN) ||
-      window.location.hostname === 'portal.university.edu') {
+  if (_isPortalDomain()) {
 
     function _checkDomForResult(node) {
       if (!node || !node.textContent) return;
