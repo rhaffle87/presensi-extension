@@ -431,6 +431,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         cfg_sess: { auth, domain: domain || 'portal.university.edu', ts: ts || Date.now() }
       });
     }
+    sendResponse({ ok: true });
+    return true;
+  }
+
   // ── CSP-Immune Relay Fetch Proxy (bypasses page connect-src CSP) ─────────
   if (message.type === 'RELAY_PROXY_FETCH') {
     fetch(message.url, message.options || {})
