@@ -514,5 +514,81 @@ describe('15. Network Interceptor Isolation & Portal Scope', () => {
   });
 });
 
+describe('16. Dynamic Kinematics & True Bearing Calculation', () => {
+  function calculateBearing(lat1, lon1, lat2, lon2) {
+    const dLng = (lon2 - lon1) * (Math.PI / 180);
+    const y = Math.sin(dLng) * Math.cos(lat2 * (Math.PI / 180));
+    const x = Math.cos(lat1 * (Math.PI / 180)) * Math.sin(lat2 * (Math.PI / 180)) -
+              Math.sin(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.cos(dLng);
+    return Math.round((Math.atan2(y, x) * 180 / Math.PI + 360) % 360);
+  }
+
+  test('Calculates accurate cardinal headings (North, East, South, West)', () => {
+    const headingNorth = calculateBearing(0, 0, 1, 0);
+    assert.strictEqual(headingNorth, 0);
+
+    const headingEast = calculateBearing(0, 0, 0, 1);
+    assert.strictEqual(headingEast, 90);
+
+    const headingSouth = calculateBearing(0, 0, -1, 0);
+    assert.strictEqual(headingSouth, 180);
+
+    const headingWest = calculateBearing(0, 0, 0, -1);
+    assert.strictEqual(headingWest, 270);
+  });
+});
+
+describe('17. Physiological Hand Tremor & Gravity Vector Synthesis', () => {
+  function buildMotionEvent(t) {
+    const breath = Math.sin(t / 4000) * 0.08;
+    const tremorX = Math.sin(t / 95) * 0.05;
+    const tremorY = Math.cos(t / 105) * 0.05;
+    const tremorZ = Math.sin(t / 115) * 0.04;
+    return {
+      acceleration: { x: tremorX, y: tremorY, z: tremorZ },
+      accelerationIncludingGravity: {
+        x: 0.15 + tremorX,
+        y: 7.85 + breath + tremorY,
+        z: 5.80 + tremorZ
+      }
+    };
+  }
+
+  test('Gravity acceleration magnitude strictly mimics Earth gravity (~9.81 m/s²)', () => {
+    const times = [0, 500, 1000, 2500, 5000];
+    for (const t of times) {
+      const m = buildMotionEvent(t);
+      const ag = m.accelerationIncludingGravity;
+      const mag = Math.sqrt(ag.x ** 2 + ag.y ** 2 + ag.z ** 2);
+      assert.ok(mag >= 9.6 && mag <= 10.0, `Gravity magnitude ${mag} outside physiological range`);
+      assert.ok(Math.abs(m.acceleration.x) < 0.1, 'Tremor x magnitude too large');
+    }
+  });
+});
+
+describe('18. Swarm Relay Anti-Replay & Timestamp Verification Contract', () => {
+  function verifyRequestFreshness(reqTs, now, maxSkewMs = 300000) {
+    if (!reqTs || typeof reqTs !== 'number') return { ok: true };
+    if (Math.abs(now - reqTs) > maxSkewMs) {
+      return { ok: false, error: 'stale request: timestamp replay rejected' };
+    }
+    return { ok: true };
+  }
+
+  test('Accepts fresh timestamps within 5-minute skew window', () => {
+    const now = Date.now();
+    assert.strictEqual(verifyRequestFreshness(now, now).ok, true);
+    assert.strictEqual(verifyRequestFreshness(now - 60000, now).ok, true); // 1 min ago
+    assert.strictEqual(verifyRequestFreshness(now + 30000, now).ok, true); // 30s drift
+  });
+
+  test('Rejects replayed requests older than 5 minutes', () => {
+    const now = Date.now();
+    assert.strictEqual(verifyRequestFreshness(now - 301000, now).ok, false); // 5m 1s ago
+    assert.strictEqual(verifyRequestFreshness(now - 3600000, now).ok, false); // 1 hour ago
+  });
+});
+
+
 
 

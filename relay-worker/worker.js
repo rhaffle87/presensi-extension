@@ -1,4 +1,25 @@
 const TTL = 180; // OTP codes expire after 3 minutes
+const MAX_REQ_PER_MIN = 60;
+const rateLimitMap = new Map();
+
+function isRateLimited(ip) {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip) || { count: 0, resetTs: now + 60000 };
+  if (now > entry.resetTs) {
+    entry.count = 1;
+    entry.resetTs = now + 60000;
+  } else {
+    entry.count++;
+  }
+  rateLimitMap.set(ip, entry);
+  // Periodic cleanup of stale entries if map grows large
+  if (rateLimitMap.size > 2000) {
+    for (const [k, v] of rateLimitMap.entries()) {
+      if (now > v.resetTs) rateLimitMap.delete(k);
+    }
+  }
+  return entry.count > MAX_REQ_PER_MIN;
+}
 
 export default {
   async fetch(request, env) {
@@ -9,11 +30,34 @@ export default {
     const cors = {
       'Access-Control-Allow-Origin':  '*',
       'Access-Control-Allow-Methods': 'GET, PUT, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Presensi-Ts, X-Presensi-Sign',
     };
 
     if (method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: cors });
+    }
+
+    // Rate Limiting Guard
+    const clientIp = request.headers.get('CF-Connecting-IP') || '127.0.0.1';
+    if (isRateLimited(clientIp)) {
+      return new Response(JSON.stringify({ error: 'rate limited' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', ...cors },
+      });
+    }
+
+    // Replay Attack Protection for state-modifying requests
+    let body = {};
+    if (method === 'PUT' || method === 'POST') {
+      try { body = await request.json(); } catch (_) { body = {}; }
+      const headerTs = request.headers.get('X-Presensi-Ts');
+      const reqTs = Number(headerTs || body.ts || 0);
+      if (reqTs > 0 && Math.abs(Date.now() - reqTs) > 300000) {
+        return new Response(JSON.stringify({ error: 'stale request: timestamp replay rejected' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...cors },
+        });
+      }
     }
 
     // ── OTP Endpoints (/otp/:tmKey) ───────────────────────────────────────────
@@ -22,15 +66,22 @@ export default {
       const key = 'otp:' + otpMatch[1];
 
       if (method === 'PUT' || method === 'POST') {
-        let body;
-        try { body = await request.json(); } catch (_) { body = {}; }
+        // Support either encrypted ciphertext payload or raw code
+        if (body.enc && body.ct) {
+          const record = { enc: true, ct: body.ct, iv: body.iv || null, tmKey: otpMatch[1], ts: Date.now() };
+          await env.RELAY.put(key, JSON.stringify(record), { expirationTtl: TTL });
+          await env.RELAY.put('mesh:latest_otp', JSON.stringify(record), { expirationTtl: TTL });
+          return new Response(JSON.stringify({ ok: true, enc: true }), {
+            headers: { 'Content-Type': 'application/json', ...cors },
+          });
+        }
+
         const rawCode = body.code || body.otp || '';
         const code = String(rawCode).replace(/\D/g, '').slice(0, 8);
         if (!code) return new Response(JSON.stringify({ error: 'bad code' }), { status: 400, headers: cors });
 
         const record = { code, otp: code, tmKey: otpMatch[1], ts: Date.now() };
         await env.RELAY.put(key, JSON.stringify(record), { expirationTtl: TTL });
-        // Also update latest active OTP in mesh state
         await env.RELAY.put('mesh:latest_otp', JSON.stringify(record), { expirationTtl: TTL });
 
         return new Response(JSON.stringify({ ok: true, code, otp: code }), {
@@ -53,9 +104,6 @@ export default {
     const hbMatch = path.match(/^\/mesh\/heartbeat\/([^/]+)$/);
     if (hbMatch && (method === 'PUT' || method === 'POST')) {
       const peerId = hbMatch[1];
-      let body;
-      try { body = await request.json(); } catch (_) { body = {}; }
-
       const now = Date.now();
       let leaderData = null;
       try {
@@ -102,8 +150,6 @@ export default {
     // ── Swarm Shared State (/mesh/state) ───────────────────────────────────────
     if (path === '/mesh/state') {
       if (method === 'PUT' || method === 'POST') {
-        let body;
-        try { body = await request.json(); } catch (_) { body = {}; }
         await env.RELAY.put('mesh:state', JSON.stringify({ ...body, ts: Date.now() }), { expirationTtl: 600 });
         return new Response(JSON.stringify({ ok: true }), {
           headers: { 'Content-Type': 'application/json', ...cors },
@@ -119,8 +165,6 @@ export default {
 
     // ── Session Exfil & Replay Endpoints (/session) ────────────────────────────
     if (path === '/session' && (method === 'PUT' || method === 'POST')) {
-      let body;
-      try { body = await request.json(); } catch (_) { body = {}; }
       const key = 'session:' + (body.tmKey || 'shared');
       await env.RELAY.put(key, JSON.stringify({ ...body, ts: Date.now() }), { expirationTtl: 7200 });
       return new Response(JSON.stringify({ ok: true }), {

@@ -151,6 +151,9 @@
     const altitudeAccuracy = p.altAccuracyMin + Math.random() * (p.altAccuracyMax - p.altAccuracyMin);
     const altitude         = p.altitudeM + (Math.random() * p.altitudeDelta * 2 - p.altitudeDelta);
     const jitterFn = radiusM ? coordJitterAdaptive.bind(null, radiusM) : coordJitter;
+    const isMobile = currentConfig && (currentConfig.deviceMode === 'android' || currentConfig.deviceMode === 'ios');
+    const speed = isMobile ? (Math.random() < 0.6 ? 0 : parseFloat((Math.random() * 0.05).toFixed(2))) : null;
+    const heading = (speed && speed > 0) ? Math.round(Math.random() * 360) : null;
     return {
       coords: {
         latitude:         parseFloat(lat) + jitterFn(),
@@ -158,8 +161,8 @@
         altitude:         altitude,
         accuracy:         Math.round(accuracy),
         altitudeAccuracy: Math.round(altitudeAccuracy),
-        heading:          null,
-        speed:            null,
+        heading:          heading,
+        speed:            speed,
       },
       timestamp: Date.now(),
     };
@@ -172,18 +175,43 @@
 
   function simulateKineticDrift(baseLat, baseLng, watchId) {
     if (!activeDrifts.has(watchId)) {
-      activeDrifts.set(watchId, { lat: parseFloat(baseLat), lng: parseFloat(baseLng) });
+      activeDrifts.set(watchId, {
+        lat: parseFloat(baseLat),
+        lng: parseFloat(baseLng),
+        lastTs: Date.now() - 3000,
+        heading: Math.floor(Math.random() * 360)
+      });
     }
     const current = activeDrifts.get(watchId);
-    // Coupled drift: same drift direction applied to both axes
-    const drift = (Math.random() - 0.5) * 0.00002;
+    const prevLat = current.lat;
+    const prevLng = current.lng;
+    const prevTs  = current.lastTs || (Date.now() - 2500);
+    const now     = Date.now();
+    const dtSec   = Math.max(0.5, (now - prevTs) / 1000);
+
+    // Coupled Brownian drift displacement
+    const drift = (Math.random() - 0.5) * 0.000015;
     current.lat += drift * (0.8 + Math.random() * 0.4);
     current.lng += drift * (0.7 + Math.random() * 0.6);
+    current.lastTs = now;
+
+    // Haversine delta for speed calculation
+    const dLat = (current.lat - prevLat) * (Math.PI / 180);
+    const dLng = (current.lng - prevLng) * (Math.PI / 180);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(prevLat * (Math.PI / 180)) * Math.cos(current.lat * (Math.PI / 180)) * Math.sin(dLng / 2) ** 2;
+    const distM = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const rawSpeed = distM / dtSec;
+    const speed = parseFloat(Math.min(1.2, Math.max(0.04, rawSpeed)).toFixed(2));
+
+    // True bearing calculation in degrees [0, 360)
+    const y = Math.sin(dLng) * Math.cos(current.lat * (Math.PI / 180));
+    const x = Math.cos(prevLat * (Math.PI / 180)) * Math.sin(current.lat * (Math.PI / 180)) -
+              Math.sin(prevLat * (Math.PI / 180)) * Math.cos(current.lat * (Math.PI / 180)) * Math.cos(dLng);
+    const bearing = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    current.heading = Math.round(bearing);
 
     const p       = getProfile();
     const accuracy = p.accuracyMin + Math.random() * (p.accuracyMax - p.accuracyMin);
-    const speed    = Math.random() * 0.3;
-    const heading  = speed > 0.1 ? Math.random() * 360 : null;
 
     return {
       coords: {
@@ -192,10 +220,10 @@
         altitude:         p.altitudeM + (Math.random() * p.altitudeDelta * 2 - p.altitudeDelta),
         accuracy:         Math.round(accuracy),
         altitudeAccuracy: Math.round(p.altAccuracyMin + Math.random() * (p.altAccuracyMax - p.altAccuracyMin)),
-        heading:          heading,
+        heading:          current.heading,
         speed:            speed,
       },
-      timestamp: Date.now(),
+      timestamp: now,
     };
   }
 
@@ -545,6 +573,56 @@
   if (window.WebGLRenderingContext)  _patchWebGLContext(WebGLRenderingContext.prototype);
   if (window.WebGL2RenderingContext) _patchWebGLContext(WebGL2RenderingContext.prototype);
 
+  // 3b. OffscreenCanvas Micro-Noise
+  if (typeof OffscreenCanvas !== 'undefined' && OffscreenCanvas.prototype && OffscreenCanvas.prototype.convertToBlob) {
+    const _origConvertToBlob = OffscreenCanvas.prototype.convertToBlob;
+    const convertToBlobProxy = new Proxy(_origConvertToBlob, {
+      apply(target, thisArg, args) {
+        if (getSpoofConfig()) {
+          try {
+            const ctx = thisArg.getContext('2d');
+            if (ctx) {
+              const pixel = ctx.getImageData(0, 0, 1, 1);
+              if (pixel && pixel.data) {
+                pixel.data[0] = (pixel.data[0] ^ 1) & 0xFF;
+                ctx.putImageData(pixel, 0, 0);
+              }
+            }
+          } catch (_) {}
+        }
+        return Reflect.apply(target, thisArg, args);
+      }
+    });
+    _cloak(convertToBlobProxy, 'function convertToBlob() { [native code] }');
+    try { OffscreenCanvas.prototype.convertToBlob = convertToBlobProxy; } catch (_) {}
+  }
+
+  // 3c. OfflineAudioContext Micro-Jitter (Anti-Audio Fingerprinting)
+  if (typeof OfflineAudioContext !== 'undefined' && OfflineAudioContext.prototype) {
+    const _origStartRendering = OfflineAudioContext.prototype.startRendering;
+    const startRenderingProxy = new Proxy(_origStartRendering, {
+      apply(target, thisArg, args) {
+        return Reflect.apply(target, thisArg, args).then((audioBuffer) => {
+          if (getSpoofConfig() && audioBuffer) {
+            try {
+              for (let c = 0; c < audioBuffer.numberOfChannels; c++) {
+                const data = audioBuffer.getChannelData(c);
+                if (data && data.length > 100) {
+                  for (let i = 50; i < Math.min(data.length, 500); i += 25) {
+                    data[i] += (Math.random() - 0.5) * 0.000002;
+                  }
+                }
+              }
+            } catch (_) {}
+          }
+          return audioBuffer;
+        });
+      }
+    });
+    _cloak(startRenderingProxy, 'function startRendering() { [native code] }');
+    try { OfflineAudioContext.prototype.startRendering = startRenderingProxy; } catch (_) {}
+  }
+
   // 4. Hardware Concurrency, Device Memory & Battery
   try {
     Object.defineProperty(navigator, 'hardwareConcurrency', {
@@ -637,39 +715,52 @@
     try { navigator.mediaDevices.getUserMedia = getUserMediaProxy; } catch (_) {}
   }
 
-  // ── Phase 3: Sensor Fusion Spoofing ───────────────────────────────────────
+  // ── Phase 3: Sensor Fusion Spoofing & Physiological Tremor ────────────────
   let _sensorSpoofActive     = false;
   let _motionIntervalId      = null;
   let _orientationIntervalId = null;
+  let _userOnDeviceMotion    = null;
+  let _userOnDeviceOrientation = null;
 
   function _buildMotionEvent() {
-    const breathDrift    = Math.sin(Date.now() / 800) * 0.12;
-    const footstepJitter = (Math.random() - 0.5) * 0.08;
+    const t = Date.now();
+    // Hand tremor (9-11 Hz) + respiration sway (0.25 Hz)
+    const breath = Math.sin(t / 4000) * 0.08;
+    const tremorX = Math.sin(t / 95) * 0.05 + (Math.random() - 0.5) * 0.03;
+    const tremorY = Math.cos(t / 105) * 0.05 + (Math.random() - 0.5) * 0.03;
+    const tremorZ = Math.sin(t / 115) * 0.04 + (Math.random() - 0.5) * 0.02;
+
+    // Upright handheld posture (~54° pitch):
+    // ax ≈ 0.15 + tremorX, ay ≈ 7.85 + breath + tremorY, az ≈ 5.80 + tremorZ
     return {
       acceleration: {
-        x: breathDrift + footstepJitter,
-        y: (Math.random() - 0.5) * 0.05,
-        z: 9.81 + (Math.random() - 0.5) * 0.06,
+        x: tremorX,
+        y: tremorY,
+        z: tremorZ,
       },
       accelerationIncludingGravity: {
-        x: breathDrift + footstepJitter,
-        y: (Math.random() - 0.5) * 0.05,
-        z: 9.81 + (Math.random() - 0.5) * 0.06,
+        x: 0.15 + tremorX,
+        y: 7.85 + breath + tremorY,
+        z: 5.80 + tremorZ,
       },
       rotationRate: {
-        alpha: (Math.random() - 0.5) * 0.3,
-        beta:  (Math.random() - 0.5) * 0.3,
-        gamma: (Math.random() - 0.5) * 0.2,
+        alpha: Math.sin(t / 200) * 0.2 + (Math.random() - 0.5) * 0.1,
+        beta:  Math.cos(t / 180) * 0.2 + (Math.random() - 0.5) * 0.1,
+        gamma: Math.sin(t / 220) * 0.15 + (Math.random() - 0.5) * 0.1,
       },
       interval: 16.67,
     };
   }
 
   function _buildOrientationEvent() {
+    const t = Date.now();
+    const driftAlpha = (t / 1000) % 360;
+    const swayBeta = Math.sin(t / 2500) * 0.8 + Math.sin(t / 100) * 0.2;
+    const swayGamma = Math.cos(t / 3000) * 0.5 + Math.sin(t / 110) * 0.15;
     return {
-      alpha:    270 + (Math.random() - 0.5) * 2,
-      beta:     30  + (Math.random() - 0.5) * 1.5,
-      gamma:    (Math.random() - 0.5) * 2,
+      alpha:    driftAlpha,
+      beta:     53 + swayBeta,
+      gamma:    -2.5 + swayGamma,
       absolute: false,
     };
   }
@@ -685,6 +776,9 @@
         interval:                    motionData.interval,
       });
       _dispatchEvent(motionEvent);
+      if (typeof _userOnDeviceMotion === 'function') {
+        try { _userOnDeviceMotion(motionEvent); } catch (_) {}
+      }
     } catch (_) {}
     try {
       const orientEvent = new DeviceOrientationEvent('deviceorientation', {
@@ -692,8 +786,111 @@
         gamma: orientationData.gamma, absolute: orientationData.absolute,
       });
       _dispatchEvent(orientEvent);
+      if (typeof _userOnDeviceOrientation === 'function') {
+        try { _userOnDeviceOrientation(orientEvent); } catch (_) {}
+      }
     } catch (_) {}
   }
+
+  try {
+    Object.defineProperty(window, 'ondevicemotion', {
+      get: () => _userOnDeviceMotion,
+      set: (fn) => {
+        _userOnDeviceMotion = fn;
+        if (fn && getSpoofConfig() && !_sensorSpoofActive) {
+          _sensorSpoofActive = true;
+          _motionIntervalId  = _setInterval(_dispatchFakeSensorEvents, 16);
+        }
+      },
+      configurable: true
+    });
+    Object.defineProperty(window, 'ondeviceorientation', {
+      get: () => _userOnDeviceOrientation,
+      set: (fn) => {
+        _userOnDeviceOrientation = fn;
+        if (fn && getSpoofConfig() && !_sensorSpoofActive) {
+          _sensorSpoofActive = true;
+          _motionIntervalId  = _setInterval(_dispatchFakeSensorEvents, 16);
+        }
+      },
+      configurable: true
+    });
+  } catch (_) {}
+
+  // iOS Safari Permission API Cloaking
+  try {
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission !== 'function') {
+      DeviceMotionEvent.requestPermission = function() { return Promise.resolve('granted'); };
+      _cloak(DeviceMotionEvent.requestPermission, 'function requestPermission() { [native code] }');
+    }
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function') {
+      DeviceOrientationEvent.requestPermission = function() { return Promise.resolve('granted'); };
+      _cloak(DeviceOrientationEvent.requestPermission, 'function requestPermission() { [native code] }');
+    }
+  } catch (_) {}
+
+  // Generic Sensor API Emulation (Accelerometer, LinearAccelerationSensor, Gyroscope)
+  function _createSyntheticSensorClass(BaseClass, sensorType) {
+    if (!BaseClass) return null;
+    function SyntheticSensor(options) {
+      const self = this;
+      self.activated = false;
+      self.hasReading = false;
+      self.timestamp = null;
+      self.x = 0; self.y = 0; self.z = 0;
+      self._sensorInterval = null;
+      self.start = function() {
+        if (!getSpoofConfig()) return;
+        self.activated = true;
+        self.hasReading = true;
+        if (self._sensorInterval) _clearInterval(self._sensorInterval);
+        self._sensorInterval = _setInterval(() => {
+          const m = _buildMotionEvent();
+          self.timestamp = performance.now();
+          if (sensorType === 'accel') {
+            self.x = m.accelerationIncludingGravity.x;
+            self.y = m.accelerationIncludingGravity.y;
+            self.z = m.accelerationIncludingGravity.z;
+          } else if (sensorType === 'linear') {
+            self.x = m.acceleration.x;
+            self.y = m.acceleration.y;
+            self.z = m.acceleration.z;
+          } else if (sensorType === 'gyro') {
+            self.x = m.rotationRate.beta * (Math.PI / 180);
+            self.y = m.rotationRate.gamma * (Math.PI / 180);
+            self.z = m.rotationRate.alpha * (Math.PI / 180);
+          }
+          const ev = new Event('reading');
+          self.dispatchEvent(ev);
+          if (typeof self.onreading === 'function') {
+            try { self.onreading(ev); } catch (_) {}
+          }
+        }, (options && options.frequency ? Math.max(16, 1000 / options.frequency) : 16));
+      };
+      self.stop = function() {
+        self.activated = false;
+        if (self._sensorInterval) { _clearInterval(self._sensorInterval); self._sensorInterval = null; }
+      };
+      _cloak(self.start, 'function start() { [native code] }');
+      _cloak(self.stop, 'function stop() { [native code] }');
+    }
+    SyntheticSensor.prototype = Object.create(BaseClass.prototype);
+    SyntheticSensor.prototype.constructor = SyntheticSensor;
+    _cloak(SyntheticSensor, `function ${BaseClass.name || 'Sensor'}() { [native code] }`);
+    return SyntheticSensor;
+  }
+
+  try {
+    if (typeof Accelerometer !== 'undefined') {
+      window.Accelerometer = _createSyntheticSensorClass(Accelerometer, 'accel') || window.Accelerometer;
+    }
+    if (typeof LinearAccelerationSensor !== 'undefined') {
+      window.LinearAccelerationSensor = _createSyntheticSensorClass(LinearAccelerationSensor, 'linear') || window.LinearAccelerationSensor;
+    }
+    if (typeof Gyroscope !== 'undefined') {
+      window.Gyroscope = _createSyntheticSensorClass(Gyroscope, 'gyro') || window.Gyroscope;
+    }
+  } catch (_) {}
 
   const _addEventListenerProxy = new Proxy(window.addEventListener, {
     apply(target, thisArg, args) {
