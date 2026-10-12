@@ -98,6 +98,7 @@ const K = {
   testMode: 'cfg_tm',
   customPresets: 'cfg_cp',
   timetable: 'cfg_tt',
+  relayUrl:  'cfg_ru',
 };
 
 // ── Velocity / Impossible Travel Limiter ───────────────────────────────

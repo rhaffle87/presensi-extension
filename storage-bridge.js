@@ -119,7 +119,7 @@
 
     try {
       const data = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail;
-      if (data && (data.type === 'PRESENSI_SUBMIT' || data.type === 'PRESENSI_RESULT')) {
+      if (data && (data.type === 'PRESENSI_SUBMIT' || data.type === 'PRESENSI_RESULT' || data.type === 'SESSION_CAPTURED')) {
         chrome.runtime.sendMessage(data, () => {
           void chrome.runtime.lastError;
         });

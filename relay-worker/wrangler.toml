@@ -1,0 +1,8 @@
+name            = "presensi-relay"
+main            = "worker.js"
+compatibility_date = "2024-01-01"
+workers_dev     = true
+
+[[kv_namespaces]]
+binding     = "RELAY"
+id          = "06bc5fbd1dbf4cc6a19fb4f2efae6b0d"

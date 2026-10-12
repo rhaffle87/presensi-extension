@@ -33,7 +33,7 @@ describe('1. Storage Key Schema Parity', () => {
     const popupK = extractKObject(path.join(rootDir, 'popup.js'));
     const optK = extractKObject(path.join(rootDir, 'options', 'options.js'));
 
-    const requiredKeys = ['enabled', 'lat', 'lng', 'domain', 'profile', 'vpnLock', 'deviceMode', 'testMode', 'customPresets', 'timetable'];
+    const requiredKeys = ['enabled', 'lat', 'lng', 'domain', 'profile', 'vpnLock', 'deviceMode', 'testMode', 'customPresets', 'timetable', 'relayUrl'];
 
     requiredKeys.forEach(key => {
       assert.ok(swK[key], `Missing ${key} in service-worker.js`);

@@ -24,6 +24,7 @@ const K = {
   testMode: 'cfg_tm',
   customPresets: 'cfg_cp',
   timetable: 'cfg_tt',
+  relayUrl:  'cfg_ru',
 };
 
 
@@ -95,6 +96,25 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 // --- Autonomous Background Scheduler (chrome.alarms) ---
+function getActiveTimetableSlot(timetable) {
+  if (!Array.isArray(timetable) || !timetable.length) return null;
+  const now = new Date();
+  const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const wibDate = new Date(utcMs + (7 * 3600000));
+  const day = wibDate.getDay();
+  const currentMinutes = wibDate.getHours() * 60 + wibDate.getMinutes();
+  for (let i = 0; i < timetable.length; i++) {
+    const slot = timetable[i];
+    if (slot.day !== day) continue;
+    const [startH, startM] = (slot.start || '00:00').split(':').map(Number);
+    const [endH, endM] = (slot.end || '23:59').split(':').map(Number);
+    const startMin = (startH || 0) * 60 + (startM || 0);
+    const endMin = (endH || 0) * 60 + (endM || 0);
+    if (currentMinutes >= startMin && currentMinutes <= endMin) return slot;
+  }
+  return null;
+}
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'presensi_auto_check') return;
 
@@ -106,39 +126,93 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     return;
   }
 
-  // 2. Read current spoof state
-  chrome.storage.local.get([K.enabled, K.domain, K.lat, K.lng, K.profile], async (cfg) => {
+  // 2. Read current spoof state & timetable
+  chrome.storage.local.get([K.enabled, K.domain, K.lat, K.lng, K.profile, K.timetable, K.relayUrl, 'cfg_sess'], async (cfg) => {
     if (chrome.runtime.lastError || !cfg[K.enabled]) return;
 
     const targetDomain = cfg[K.domain] || 'portal.university.edu';
+    const activeSlot   = getActiveTimetableSlot(cfg[K.timetable]);
+    const relayUrl     = cfg[K.relayUrl] || null;
+    const sess         = cfg.cfg_sess || null;
+
+    // ── Headless Auto-Checkin via Timetable + Swarm OTP ────────────────────
+    if (activeSlot && relayUrl) {
+      try {
+        const stateRes = await fetch(`${relayUrl}/mesh/state`).catch(() => null);
+        const stateData = stateRes && stateRes.ok ? await stateRes.json().catch(() => null) : null;
+        const otp = stateData && stateData.otp ? String(stateData.otp) : null;
+        const tmKey = stateData && stateData.tmKey ? String(stateData.tmKey) : null;
+
+        if (otp && tmKey && (sess || true)) {
+          const spoofLat = activeSlot.lat != null ? parseFloat(activeSlot.lat) : parseFloat(cfg[K.lat]);
+          const spoofLng = activeSlot.lng != null ? parseFloat(activeSlot.lng) : parseFloat(cfg[K.lng]);
+          const checkinUrl = `https://${targetDomain}/api/presensi/tm/${tmKey}/mahasiswa/self`;
+
+          const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+          if (sess && sess.auth) headers['Authorization'] = sess.auth;
+
+          const submitRes = await fetch(checkinUrl, {
+            method:      'PUT',
+            credentials: 'include',
+            headers:     headers,
+            body:        JSON.stringify({
+              jenis_hadir_tm: 'L',
+              kode:           otp,
+              latitude:       spoofLat,
+              longitude:      spoofLng
+            })
+          }).catch(() => null);
+
+          if (submitRes && submitRes.ok) {
+            // Append successful entry to log
+            chrome.storage.local.get([K.log], (logRes) => {
+              const log = Array.isArray(logRes[K.log]) ? logRes[K.log] : [];
+              log.unshift({
+                ts: Date.now(), lat: spoofLat, lng: spoofLng,
+                profile: cfg[K.profile] || 'mobile_gps', status: 'accepted'
+              });
+              if (log.length > 50) log.length = 50;
+              chrome.storage.local.set({ [K.log]: log });
+            });
+
+            chrome.notifications.create({
+              type:    'basic',
+              iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+              title:   '🎯 Presensi Otomatis Sukses (Headless)',
+              message: `${activeSlot.subject || 'Kelas'}: Hadir dengan OTP ${otp}`,
+              priority: 2
+            });
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // ── Fallback Portal Ping & Notification ────────────────────────────────
     try {
-      // 3. Headless ping to check if user has active session on portal
       const checkUrl = `https://${targetDomain}/dashboard`;
       const res = await fetch(checkUrl, {
-        method: 'GET',
+        method:      'GET',
         credentials: 'include',
-        headers: { 'Accept': 'text/html,application/xhtml+xml' }
+        headers:     { 'Accept': 'text/html,application/xhtml+xml' }
       });
 
       if (res.ok) {
         const text = await res.text();
-        // Check for presence of active attendance markers in DOM/response
         const hasActivePresensi = /presensi|kehadiran|daftar\s*hadir|absen/i.test(text) &&
                                   /buka|aktif|active|open/i.test(text);
 
         if (hasActivePresensi) {
           chrome.notifications.create({
-            type: 'basic',
+            type:    'basic',
             iconUrl: chrome.runtime.getURL('icons/icon48.png'),
-            title: '📅 Presensi Window Active',
+            title:   '📅 Presensi Window Active',
             message: `Sesi presensi aktif terdeteksi di ${targetDomain}. Koordinat spoof siap diterapkan.`,
             priority: 2
           });
         }
       }
-    } catch (_) {
-      // Offline or network error; silent recovery
-    }
+    } catch (_) {}
   });
 });
 
@@ -345,6 +419,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     } catch (_) {}
 
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  // ── Session telemetry: store captured session token for headless replay ───
+  if (message.type === 'SESSION_CAPTURED') {
+    const { auth, domain, ts } = message;
+    if (auth) {
+      chrome.storage.local.set({
+        cfg_sess: { auth, domain: domain || 'portal.university.edu', ts: ts || Date.now() }
+      });
+    }
     sendResponse({ ok: true });
     return true;
   }
