@@ -142,29 +142,54 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   });
 });
 
-// --- Device/User-Agent Spoofing (declarativeNetRequest) ---
-function updateDeviceRules(deviceMode) {
-  const RULE_ID = 1;
+// --- Device/User-Agent Spoofing + Campus IP Header Injection (declarativeNetRequest) ---
+function updateDeviceRules(deviceMode, campusIp) {
+  const UA_RULE_ID = 1;
+  const IP_RULE_ID = 2;
+
+  // Campus IP injection: fakes X-Forwarded-For to an internal campus subnet.
+  // Effective when the portal backend trusts proxy headers (common misconfiguration).
+  const spoofIp = campusIp || '10.103.0.' + (Math.floor(Math.random() * 200) + 10);
+
+  chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: [IP_RULE_ID],
+    addRules: [{
+      id: IP_RULE_ID,
+      priority: 2,
+      action: {
+        type: 'modifyHeaders',
+        requestHeaders: [
+          { header: 'X-Forwarded-For',  operation: 'set', value: spoofIp },
+          { header: 'X-Real-IP',        operation: 'set', value: spoofIp },
+          { header: 'X-Originating-IP', operation: 'set', value: spoofIp },
+          { header: 'X-Remote-IP',      operation: 'set', value: spoofIp },
+          { header: 'X-Remote-Addr',    operation: 'set', value: spoofIp }
+        ]
+      },
+      condition: {
+        urlFilter: '*',
+        resourceTypes: ['main_frame', 'sub_frame', 'xmlhttprequest', 'ping']
+      }
+    }]
+  });
+
   if (!deviceMode || deviceMode === 'desktop') {
-    // Remove the override rule
-    chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: [RULE_ID]
-    });
+    chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: [UA_RULE_ID] });
     return;
   }
 
   const uas = {
     'android': 'Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36',
-    'ios': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1'
+    'ios':     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1'
   };
 
   const overrideUserAgent = uas[deviceMode];
   if (!overrideUserAgent) return;
 
   chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [RULE_ID],
+    removeRuleIds: [UA_RULE_ID],
     addRules: [{
-      id: RULE_ID,
+      id: UA_RULE_ID,
       priority: 1,
       action: {
         type: 'modifyHeaders',
@@ -189,10 +214,11 @@ function updateBadge(enabled) {
   } catch (_) {}
 }
 
-// Re-apply rules & badge on startup
+// Re-apply rules & badge on startup; IP injection rule always active
 chrome.storage.local.get([K.deviceMode, K.enabled], (res) => {
   if (chrome.runtime.lastError) return;
-  if (res[K.deviceMode]) updateDeviceRules(res[K.deviceMode]);
+  // Always install the IP injection rule regardless of deviceMode
+  updateDeviceRules(res[K.deviceMode] || 'desktop');
   updateBadge(res[K.enabled] === true);
 });
 
