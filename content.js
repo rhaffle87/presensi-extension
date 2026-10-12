@@ -30,6 +30,7 @@
   const _dispatchEvent       = window.dispatchEvent.bind(window);
   const _CustomEvent         = CustomEvent;
   const _setTimeout          = setTimeout;
+  const _clearTimeout        = clearTimeout;
   const _setInterval         = setInterval;
   const _clearInterval       = clearInterval;
   const _origFetch           = window.fetch ? window.fetch.bind(window) : null;
