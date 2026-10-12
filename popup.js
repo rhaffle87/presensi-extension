@@ -177,7 +177,7 @@ function gaussianJitter(deg) {
  */
 async function checkIpOnEnable() {
   if (diagIpStatus) {
-    diagIpStatus.textContent = 'Checking IP...';
+    diagIpStatus.textContent = typeof I18N !== 'undefined' ? I18N.t('diag_ip_checking') : 'Checking IP...';
     diagIpStatus.className = 'diag-val';
   }
 
@@ -231,15 +231,16 @@ async function checkIpOnEnable() {
                           
     if (diagIpStatus) {
       if (isCampusNetwork) {
-        diagIpStatus.textContent = 'Campus Network (OK)';
+        diagIpStatus.textContent = typeof I18N !== 'undefined' ? I18N.t('diag_ip_campus_ok') : 'Campus Network (OK)';
         diagIpStatus.className = 'diag-val ok';
       } else if (isp || city) {
         const display = isp || city;
         const shortIsp = display.length > 16 ? display.slice(0, 14) + '..' : display;
-        diagIpStatus.textContent = `${shortIsp} (External)`;
+        const extWord = typeof I18N !== 'undefined' ? I18N.t('diag_ip_external') : 'External';
+        diagIpStatus.textContent = `${shortIsp} (${extWord})`;
         diagIpStatus.className = 'diag-val warn';
       } else {
-        diagIpStatus.textContent = 'Network Active';
+        diagIpStatus.textContent = typeof I18N !== 'undefined' ? I18N.t('diag_ip_campus_ok') : 'Network Active';
         diagIpStatus.className = 'diag-val ok';
       }
     }
@@ -250,21 +251,23 @@ async function checkIpOnEnable() {
       enableToggle.checked = false;
       updateStatus(false, '', '');
       // Actionable inline banner
-      showInlineAlert('Spoof paused: Campus VPN required by settings.', true, () => {
+      const alertMsg = typeof I18N !== 'undefined' ? I18N.t('alert_vpn_required') : 'Spoof paused: Campus VPN required by settings.';
+      const actionTxt = typeof I18N !== 'undefined' ? I18N.t('alert_open_settings') : 'Open Settings';
+      showInlineAlert(alertMsg, true, () => {
         if (chrome.runtime.openOptionsPage) chrome.runtime.openOptionsPage();
         else window.open(chrome.runtime.getURL('options/options.html'));
-      }, 'Open Settings');
+      }, actionTxt);
       return;
     }
 
     if (isCampusNetwork) {
-      showToast(`Campus Network Verified`, false, 3500);
+      showToast(typeof I18N !== 'undefined' ? I18N.t('toast_campus_verified') : 'Campus Network Verified', false, 3500);
     } else if (city || region) {
-      showToast(`IP location: ${city}, ${region} — use VPN if remote`, false, 5000);
+      showToast(`IP: ${city}, ${region}`, false, 5000);
     }
   } catch (_) {
     if (diagIpStatus) {
-      diagIpStatus.textContent = 'Network Active';
+      diagIpStatus.textContent = typeof I18N !== 'undefined' ? I18N.t('diag_ip_campus_ok') : 'Network Active';
       diagIpStatus.className = 'diag-val';
     }
   }

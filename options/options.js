@@ -113,7 +113,8 @@ async function renderSubmissionLog() {
   const log = Array.isArray(r[K.log]) ? r[K.log] : [];
 
   if (!log.length) {
-    logList.innerHTML = '<div style="padding:16px; color:var(--text-muted); font-size:12px; text-align:center;">No submissions recorded yet.</div>';
+    const emptyMsg = typeof I18N !== 'undefined' ? I18N.t('opt_log_empty') : 'No attendance submissions recorded yet.';
+    logList.innerHTML = `<div style="padding:16px; color:var(--text-muted); font-size:12px; text-align:center;">${emptyMsg}</div>`;
     return;
   }
 
@@ -222,6 +223,9 @@ if (optLang) {
       I18N.applyToDOM();
     }
     await storageSet({ [K.lang]: lang });
+    renderSubmissionLog();
+    renderCustomPresets();
+    renderTimetable();
   });
 }
 
@@ -316,7 +320,7 @@ async function renderCustomPresets() {
     const empty = document.createElement('div');
     empty.style.color = 'var(--text-muted)';
     empty.style.fontSize = '12px';
-    empty.textContent = 'No custom presets added yet.';
+    empty.textContent = typeof I18N !== 'undefined' ? I18N.t('opt_presets_empty') : 'No custom presets defined yet.';
     container.appendChild(empty);
     return;
   }
@@ -359,7 +363,8 @@ async function renderCustomPresets() {
 
     const delBtn = document.createElement('button');
     delBtn.className = 'btn-danger';
-    delBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Delete';
+    const delText = typeof I18N !== 'undefined' ? I18N.t('btn_delete') : 'Delete';
+    delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> ${delText}`;
     delBtn.onclick = async () => {
       presets.splice(idx, 1);
       await storageSet({ [K.customPresets]: presets });
@@ -424,11 +429,12 @@ async function renderTimetable() {
     const empty = document.createElement('div');
     empty.style.color = 'var(--text-muted)';
     empty.style.fontSize = '12px';
-    empty.textContent = 'No timetable slots scheduled yet.';
+    empty.textContent = typeof I18N !== 'undefined' ? I18N.t('opt_tt_empty') : 'No timetable slots scheduled yet.';
     container.appendChild(empty);
     return;
   }
 
+  const dayKeys = ['day_sun', 'day_mon', 'day_tue', 'day_wed', 'day_thu', 'day_fri', 'day_sat'];
   timetable.forEach((slot, idx) => {
     const card = document.createElement('div');
     card.className = 'item-card';
@@ -444,7 +450,7 @@ async function renderTimetable() {
     const meta = document.createElement('div');
     meta.className = 'item-card-meta';
 
-    const dayName = DAY_NAMES[slot.day] || 'Day ' + slot.day;
+    const dayName = typeof I18N !== 'undefined' ? I18N.t(dayKeys[slot.day]) : (DAY_NAMES[slot.day] || 'Day ' + slot.day);
     const title = document.createElement('div');
     title.className = 'item-card-title';
     title.textContent = `${slot.subject || 'Class'} (${dayName})`;
@@ -467,7 +473,8 @@ async function renderTimetable() {
 
     const delBtn = document.createElement('button');
     delBtn.className = 'btn-danger';
-    delBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Delete';
+    const delText = typeof I18N !== 'undefined' ? I18N.t('btn_delete') : 'Delete';
+    delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> ${delText}`;
     delBtn.onclick = async () => {
       timetable.splice(idx, 1);
       await storageSet({ [K.timetable]: timetable });
@@ -539,7 +546,8 @@ if (exportBackupBtn) {
     const status = document.getElementById('backupStatus');
     if (status) {
       status.style.color = 'var(--green)';
-      status.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Configuration backup downloaded successfully.';
+      const msg = typeof I18N !== 'undefined' ? I18N.t('opt_backup_success') : 'Configuration backup downloaded successfully.';
+      status.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> ${msg}`;
     }
   });
 }
@@ -580,7 +588,8 @@ if (importBackupBtn && importFileInput) {
         const status = document.getElementById('backupStatus');
         if (status) {
           status.style.color = 'var(--green)';
-          status.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Configuration imported successfully!';
+          const msg = typeof I18N !== 'undefined' ? I18N.t('opt_restore_success') : 'Configuration imported successfully!';
+          status.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> ${msg}`;
         }
       } catch (err) {
         alert('Failed to import backup: ' + err.message);

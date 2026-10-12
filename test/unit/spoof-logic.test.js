@@ -605,10 +605,24 @@ describe('19. Multi-Language i18n Localization Engine', () => {
     i18n.setLang('en');
     assert.strictEqual(i18n.t('status_active'), 'Active');
     assert.strictEqual(i18n.t('save_apply'), 'Save & Apply Coordinates');
+    assert.strictEqual(i18n.t('opt_vpn_lock_title'), 'VPN / Campus Network Lock');
+    assert.strictEqual(i18n.t('opt_presets_title'), 'Custom Campus Facility Presets');
 
     i18n.setLang('id');
     assert.strictEqual(i18n.t('status_active'), 'Aktif');
     assert.strictEqual(i18n.t('save_apply'), 'Simpan & Terapkan Koordinat');
+    assert.strictEqual(i18n.t('opt_vpn_lock_title'), 'Kunci Jaringan Kampus / VPN');
+    assert.strictEqual(i18n.t('opt_presets_title'), 'Preset Fasilitas & Ruang Kampus Khusus');
+  });
+
+  test('Guarantees complete dictionary key parity between English and Indonesian', () => {
+    const enKeys = Object.keys(i18n.DICTIONARY.en);
+    const idKeys = Object.keys(i18n.DICTIONARY.id);
+    assert.strictEqual(enKeys.length, idKeys.length, 'English and Indonesian dictionaries must have identical key count');
+    for (const key of enKeys) {
+      assert.ok(typeof i18n.DICTIONARY.id[key] === 'string', `Missing Indonesian translation for key: ${key}`);
+      assert.ok(i18n.DICTIONARY.id[key].length > 0, `Empty Indonesian translation for key: ${key}`);
+    }
   });
 
   test('Gracefully falls back to English or key on missing translation', () => {

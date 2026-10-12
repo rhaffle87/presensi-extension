@@ -447,7 +447,7 @@
           </div>
 
           <div class="form-group">
-            <label for="optRelayUrl" data-i18n="opt_relay_url">OTP Peer Relay URL <span style="font-size:11px; background:var(--border); padding:1px 6px; border-radius:4px; vertical-align:middle;">Optional</span></label>
+            <label for="optRelayUrl"><span data-i18n="opt_relay_url">OTP Peer Relay URL</span> <span style="font-size:11px; background:var(--border); padding:1px 6px; border-radius:4px; vertical-align:middle;" data-i18n="badge_optional">Optional</span></label>
             <input type="text" id="optRelayUrl" placeholder="https://your-worker.workers.dev" autocomplete="off" spellcheck="false" />
             <p style="margin-top: 8px; font-size: 12px;" data-i18n="opt_relay_desc">Cloudflare KV worker endpoint. When set, OTP codes and QR tokens are shared with peers in real-time. Leave blank to disable.</p>
           </div>
@@ -461,11 +461,11 @@
               </select>
             </div>
             <div>
-              <label for="optTheme">Theme Preference</label>
+              <label for="optTheme" data-i18n="opt_theme">Theme Preference</label>
               <select id="optTheme">
-                <option value="system">System Default</option>
-                <option value="light">Light Mode</option>
-                <option value="dark">Dark Mode</option>
+                <option value="system" data-i18n="opt_theme_system">System Default</option>
+                <option value="light" data-i18n="opt_theme_light">Light Mode</option>
+                <option value="dark" data-i18n="opt_theme_dark">Dark Mode</option>
               </select>
             </div>
           </div>
@@ -473,71 +473,74 @@
           <div class="form-group" style="margin-top: 24px;">
             <div style="display: flex; align-items: center; gap: 12px;">
               <input type="checkbox" id="optVpnLock" style="width: 16px; height: 16px; flex-shrink: 0;" checked />
-              <label for="optVpnLock" style="margin-bottom: 0; cursor: pointer; font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal;">VPN / Campus Network Lock <span style="font-size:11px; background:var(--border); padding:1px 6px; border-radius:4px; vertical-align:middle;">Recommended</span></label>
+              <label for="optVpnLock" style="margin-bottom: 0; cursor: pointer; font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal;">
+                <span data-i18n="opt_vpn_lock_title">VPN / Campus Network Lock</span>
+                <span style="font-size:11px; background:var(--border); padding:1px 6px; border-radius:4px; vertical-align:middle;" data-i18n="badge_recommended">Recommended</span>
+              </label>
             </div>
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">When <strong>ON</strong>, spoofing is blocked if your IP is detected outside the campus network (Wi-Fi or VPN). Turn <strong>OFF</strong> to allow remote attendance from any network.</p>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;" data-i18n="opt_vpn_lock_desc">When ON, spoofing is blocked if your IP is detected outside the campus network (Wi-Fi or VPN). Turn OFF to allow remote attendance from any network.</p>
             <div id="vpnLockWarning" style="display:none; margin-top:8px; padding:10px 12px; background:var(--warning-bg,#FFF3E0); border:1px solid var(--warning-border,#FFB74D); border-radius:6px; font-size:12px; color:var(--warning-text,#E65100);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px; display:inline-block;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><strong>Network Lock is OFF.</strong> Spoofing will work from any network. Ensure you have Campus VPN connected if required for portal access, otherwise the portal may still reject you due to IP restrictions.
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px; display:inline-block;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><strong data-i18n="opt_vpn_warning_lead">Network Lock is OFF.</strong> <span data-i18n="opt_vpn_warning_text">Spoofing will work from any network. Ensure you have Campus VPN connected if required for portal access, otherwise the portal may still reject you due to IP restrictions.</span>
             </div>
           </div>
 
           <div class="form-group" style="display: flex; align-items: center; gap: 12px; margin-top: 16px;">
             <input type="checkbox" id="optTestMode" style="width: 16px; height: 16px;" />
-            <label for="optTestMode" style="margin-bottom: 0; cursor: pointer;">Global Diagnostic Test Mode</label>
+            <label for="optTestMode" style="margin-bottom: 0; cursor: pointer;" data-i18n="opt_test_mode_title">Global Diagnostic Test Mode</label>
           </div>
-          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">When enabled, geolocation spoofing applies to all websites and diagnostic tools (e.g. BrowserLeaks, HTML5 Demos) for quick verification.</p>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" data-i18n="opt_test_mode_desc">When enabled, geolocation spoofing applies to all websites and diagnostic tools (e.g. BrowserLeaks, HTML5 Demos) for quick verification.</p>
 
           <div class="form-group" style="margin-top: 24px;">
-            <label for="optDevice">Spoof Device Type</label>
+            <label for="optDevice" data-i18n="opt_device_type">Spoof Device Type</label>
             <select id="optDevice">
-              <option value="desktop">Desktop (Default)</option>
-              <option value="android">Android (Galaxy S23)</option>
-              <option value="ios">iOS (iPhone 15 Pro)</option>
+              <option value="desktop" data-i18n="opt_device_desktop">Desktop (Default)</option>
+              <option value="android" data-i18n="opt_device_android">Android (Galaxy S23)</option>
+              <option value="ios" data-i18n="opt_device_ios">iOS (iPhone 15 Pro)</option>
             </select>
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Overrides User-Agent and platform to mimic mobile devices on desktop.</p>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" data-i18n="opt_device_desc">Overrides User-Agent and platform to mimic mobile devices on desktop.</p>
           </div>
 
         </div>
         <div class="footer-actions">
-          <button class="btn" id="saveOptions">Save Preferences</button>
-          <span class="status-msg" id="saveStatus">Saved successfully</span>
+          <button class="btn" id="saveOptions" data-i18n="opt_btn_save">Save Preferences</button>
+          <span class="status-msg" id="saveStatus" data-i18n="opt_saved_status">Saved successfully</span>
         </div>
       </section>
 
       <section id="custom-presets">
-        <h2>Custom Campus Facility Presets</h2>
-        <p>Define custom campus facilities, research centers, or department classrooms with designated GPS coordinates. These will appear in the popup quick-select list and be automatically matched by attendance room sniffers.</p>
+        <h2 data-i18n="opt_presets_title">Custom Campus Facility Presets</h2>
+        <p data-i18n="opt_presets_desc">Define custom campus facilities, research centers, or department classrooms with designated GPS coordinates. These will appear in the popup quick-select list and be automatically matched by attendance room sniffers.</p>
 
         <div class="card">
           <div class="form-grid-2">
             <div>
-              <label for="customPresetName">Facility / Room Name</label>
-              <input type="text" id="customPresetName" placeholder="e.g. Lab Robotika" autocomplete="off" />
+              <label for="customPresetName" data-i18n="opt_preset_name">Facility / Room Name</label>
+              <input type="text" id="customPresetName" placeholder="e.g. Lab Robotika" data-i18n-placeholder="opt_preset_name_ph" autocomplete="off" />
             </div>
             <div>
-              <label for="customPresetRegex">Match Regex (Optional)</label>
-              <input type="text" id="customPresetRegex" placeholder="e.g. ROBOTIK|ROBOT" autocomplete="off" />
+              <label for="customPresetRegex" data-i18n="opt_preset_regex">Match Regex (Optional)</label>
+              <input type="text" id="customPresetRegex" placeholder="e.g. ROBOTIK|ROBOT" data-i18n-placeholder="opt_preset_regex_ph" autocomplete="off" />
             </div>
           </div>
           <div class="form-grid-2">
             <div>
-              <label for="customPresetLat">Latitude</label>
+              <label for="customPresetLat" data-i18n="opt_preset_lat">Latitude</label>
               <input type="text" id="customPresetLat" placeholder="-7.279500" autocomplete="off" />
             </div>
             <div>
-              <label for="customPresetLng">Longitude</label>
+              <label for="customPresetLng" data-i18n="opt_preset_lng">Longitude</label>
               <input type="text" id="customPresetLng" placeholder="112.798100" autocomplete="off" />
             </div>
           </div>
           <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
             <button class="btn" id="addCustomPresetBtn">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add Custom Preset
+              <span class="i18n-text" data-i18n="opt_preset_btn_add">Add Custom Preset</span>
             </button>
           </div>
 
           <div style="margin-top: 24px;">
-            <h3 style="margin-top: 0; margin-bottom: 12px;">Saved Presets</h3>
+            <h3 style="margin-top: 0; margin-bottom: 12px;" data-i18n="opt_presets_saved">Saved Presets</h3>
             <div id="customPresetsList" style="display: flex; flex-direction: column; gap: 8px;">
               <!-- Dynamic presets -->
             </div>
@@ -546,55 +549,55 @@
       </section>
 
       <section id="timetable">
-        <h2>Weekly Academic Timetable</h2>
-        <p>Map your weekly class schedule to designated campus coordinates. When browsing your university attendance portal during a scheduled class slot, the extension automatically activates the matching coordinates.</p>
+        <h2 data-i18n="opt_tt_title">Weekly Academic Timetable</h2>
+        <p data-i18n="opt_tt_desc">Map your weekly class schedule to designated campus coordinates. When browsing your university attendance portal during a scheduled class slot, the extension automatically activates the matching coordinates.</p>
 
         <div class="card">
           <div class="form-grid-3">
             <div>
-              <label for="ttDay">Day of Week</label>
+              <label for="ttDay" data-i18n="opt_tt_day">Day of Week</label>
               <select id="ttDay">
-                <option value="1">Monday (Senin)</option>
-                <option value="2">Tuesday (Selasa)</option>
-                <option value="3">Wednesday (Rabu)</option>
-                <option value="4">Thursday (Kamis)</option>
-                <option value="5">Friday (Jumat)</option>
-                <option value="6">Saturday (Sabtu)</option>
-                <option value="0">Sunday (Minggu)</option>
+                <option value="1" data-i18n="opt_day_mon">Monday (Senin)</option>
+                <option value="2" data-i18n="opt_day_tue">Tuesday (Selasa)</option>
+                <option value="3" data-i18n="opt_day_wed">Wednesday (Rabu)</option>
+                <option value="4" data-i18n="opt_day_thu">Thursday (Kamis)</option>
+                <option value="5" data-i18n="opt_day_fri">Friday (Jumat)</option>
+                <option value="6" data-i18n="opt_day_sat">Saturday (Sabtu)</option>
+                <option value="0" data-i18n="opt_day_sun">Sunday (Minggu)</option>
               </select>
             </div>
             <div>
-              <label for="ttStart">Start Time</label>
+              <label for="ttStart" data-i18n="opt_tt_start">Start Time</label>
               <input type="time" id="ttStart" value="07:00" />
             </div>
             <div>
-              <label for="ttEnd">End Time</label>
+              <label for="ttEnd" data-i18n="opt_tt_end">End Time</label>
               <input type="time" id="ttEnd" value="09:30" />
             </div>
           </div>
           <div class="form-grid-3">
             <div>
-              <label for="ttSubject">Subject / Facility</label>
-              <input type="text" id="ttSubject" placeholder="e.g. Algoritma (TW1)" autocomplete="off" />
+              <label for="ttSubject" data-i18n="opt_tt_subject">Subject / Facility</label>
+              <input type="text" id="ttSubject" placeholder="e.g. Algoritma (TW1)" data-i18n-placeholder="opt_tt_subject_ph" autocomplete="off" />
             </div>
             <div>
-              <label for="ttLat">Latitude</label>
+              <label for="ttLat" data-i18n="opt_preset_lat">Latitude</label>
               <input type="text" id="ttLat" placeholder="-7.2849915" autocomplete="off" />
             </div>
             <div>
-              <label for="ttLng">Longitude</label>
+              <label for="ttLng" data-i18n="opt_preset_lng">Longitude</label>
               <input type="text" id="ttLng" placeholder="112.793897" autocomplete="off" />
             </div>
           </div>
           <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
             <button class="btn" id="addTimetableBtn">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
-              Add Timetable Slot
+              <span class="i18n-text" data-i18n="opt_tt_btn_add">Add Timetable Slot</span>
             </button>
           </div>
 
           <div style="margin-top: 24px;">
-            <h3 style="margin-top: 0; margin-bottom: 12px;">Scheduled Classes</h3>
+            <h3 style="margin-top: 0; margin-bottom: 12px;" data-i18n="opt_tt_scheduled">Scheduled Classes</h3>
             <div id="timetableList" style="display: flex; flex-direction: column; gap: 8px;">
               <!-- Dynamic timetable slots -->
             </div>
@@ -603,18 +606,18 @@
       </section>
 
       <section id="backup-restore">
-        <h2>Backup &amp; Restore Configuration</h2>
-        <p>Export your full configuration (custom presets, timetable schedules, default coordinates, and settings) to a portable JSON file, or restore a previously saved backup.</p>
+        <h2 data-i18n="opt_backup_title">Backup &amp; Restore Configuration</h2>
+        <p data-i18n="opt_backup_desc">Export your full configuration (custom presets, timetable schedules, default coordinates, and settings) to a portable JSON file, or restore a previously saved backup.</p>
 
         <div class="card">
           <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             <button class="btn" id="exportBackupBtn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export Backup (JSON)
+              <span class="i18n-text" data-i18n="opt_backup_export">Export Backup (JSON)</span>
             </button>
             <button class="btn btn-secondary" id="importBackupBtn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Import Backup
+              <span class="i18n-text" data-i18n="opt_backup_import">Import Backup</span>
             </button>
             <input type="file" id="importFileInput" accept=".json" style="display: none;" />
           </div>
@@ -623,40 +626,37 @@
       </section>
 
       <section id="management">
-        <h2>Common Management Options</h2>
-        <p>You can manage this extension's core behavior natively through your browser's extension settings page.</p>
+        <h2 data-i18n="opt_mgmt_title">Common Management Options</h2>
+        <p data-i18n="opt_mgmt_desc">You can manage this extension's core behavior natively through your browser's extension settings page.</p>
         
         <div class="ext-control">
           <div class="ext-control-icon">
-            <!-- PURPOSE (R-04): Power switch icon represents enabling/disabling the extension's core functionality -->
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
               <line x1="12" y1="2" x2="12" y2="12"></line>
             </svg>
           </div>
           <div class="ext-control-text">
-            <h4>On/Off Toggle</h4>
-            <p>You can completely disable the extension without deleting it. This instantly stops all location overriding and background processes.</p>
+            <h4><span data-i18n="opt_mgmt_power_title">On/Off Toggle</span></h4>
+            <p data-i18n="opt_mgmt_power_desc">You can completely disable the extension without deleting it. This instantly stops all location overriding and background processes.</p>
           </div>
         </div>
 
         <div class="ext-control">
           <div class="ext-control-icon">
-            <!-- PURPOSE (R-04): Eye-off icon visually represents hidden/private browsing mode (Incognito) -->
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
               <line x1="1" y1="1" x2="23" y2="23"></line>
             </svg>
           </div>
           <div class="ext-control-text">
-            <h4>Allow in Incognito</h4>
-            <p>By default, extensions cannot run in private browsing windows. If you use the attendance portal in Incognito mode, you must explicitly grant this permission in the extension settings.</p>
+            <h4><span data-i18n="opt_mgmt_incog_title">Allow in Incognito</span></h4>
+            <p data-i18n="opt_mgmt_incog_desc">By default, extensions cannot run in private browsing windows. If you use the attendance portal in Incognito mode, you must explicitly grant this permission in the extension settings.</p>
           </div>
         </div>
 
         <div class="ext-control">
           <div class="ext-control-icon">
-            <!-- PURPOSE (R-04): Globe icon represents web domains and site-specific permissions -->
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -664,28 +664,26 @@
             </svg>
           </div>
           <div class="ext-control-text">
-            <h4>Site Access</h4>
-            <p>Controls whether the extension can read and change data. Currently, it is heavily restricted to only operate on specific target URLs (<code>https://portal.university.edu/*</code>) for maximum privacy and safety.</p>
+            <h4><span data-i18n="opt_mgmt_access_title">Site Access</span></h4>
+            <p data-i18n="opt_mgmt_access_desc">Controls whether the extension can read and change data. Currently, it is heavily restricted to only operate on specific target URLs for maximum privacy and safety.</p>
           </div>
         </div>
 
         <div class="ext-control">
           <div class="ext-control-icon">
-            <!-- PURPOSE (R-04): Pin icon literally maps to the pinning action in the browser toolbar -->
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="17" x2="12" y2="22"></line>
               <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.68V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3v4.68a2 2 0 0 1-1.11 1.87l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
             </svg>
           </div>
           <div class="ext-control-text">
-            <h4>Pin / Unpin</h4>
-            <p>Click the puzzle icon in your browser toolbar to pin this extension. This allows you to quickly open the popup to drag the map and update coordinates.</p>
+            <h4><span data-i18n="opt_mgmt_pin_title">Pin / Unpin</span></h4>
+            <p data-i18n="opt_mgmt_pin_desc">Click the puzzle icon in your browser toolbar to pin this extension. This allows you to quickly open the popup to drag the map and update coordinates.</p>
           </div>
         </div>
 
         <div class="ext-control">
           <div class="ext-control-icon">
-            <!-- PURPOSE (R-04): Trash bin icon universally represents deletion/removal actions -->
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -694,100 +692,99 @@
             </svg>
           </div>
           <div class="ext-control-text">
-            <h4>Remove</h4>
-            <p>Completely uninstalls the extension and deletes all saved preferences and custom coordinates from your local storage.</p>
+            <h4><span data-i18n="opt_mgmt_remove_title">Remove</span></h4>
+            <p data-i18n="opt_mgmt_remove_desc">Completely uninstalls the extension and deletes all saved preferences and custom coordinates from your local storage.</p>
           </div>
         </div>
 
         <div style="margin-top: 16px;">
-          <a href="#" id="manageLink" class="btn btn-secondary">Open Chrome Extension Settings</a>
+          <a href="#" id="manageLink" class="btn btn-secondary" data-i18n="opt_mgmt_link">Open Browser Extension Settings</a>
         </div>
       </section>
 
       <section id="systems">
-        <h2>System Architecture & Explanation</h2>
-        <p>This extension operates by silently overriding the standard web APIs that websites use to ask for your physical location.</p>
-        <h3>1. The Injection Bridge</h3>
-        <p>Modern browsers isolate extension scripts (ISOLATED world) from the website's scripts (MAIN world) for security. To successfully trick a website, this extension injects a tiny script directly into the MAIN world before the page even finishes loading (<code>document_start</code>). This script overwrites the native <code>navigator.geolocation.getCurrentPosition</code> and <code>watchPosition</code> functions.</p>
+        <h2 data-i18n="opt_sys_title">System Architecture & Explanation</h2>
+        <p data-i18n="opt_sys_lead">This extension operates by silently overriding the standard web APIs that websites use to ask for your physical location.</p>
+        <h3 data-i18n="opt_sys_inject_title">1. The Injection Bridge</h3>
+        <p data-i18n="opt_sys_inject_desc">Modern browsers isolate extension scripts (ISOLATED world) from the website's scripts (MAIN world) for security. To successfully trick a website, this extension injects a tiny script directly into the MAIN world before the page even finishes loading (<code>document_start</code>). This script overwrites the native <code>navigator.geolocation.getCurrentPosition</code> and <code>watchPosition</code> functions.</p>
         
-        <h3>2. Coordinate Spoofing & Drift</h3>
-        <p>When the attendance portal asks for your location, the overridden function intercepts the request. Instead of asking your hardware GPS, it immediately responds with the exact Latitude and Longitude you selected in the popup. To make the spoof appear legitimate, it also applies a slight random "accuracy drift" (e.g. 15-25 meters) so the data resembles a real mobile phone GPS sensor.</p>
+        <h3 data-i18n="opt_sys_drift_title">2. Coordinate Spoofing & Drift</h3>
+        <p data-i18n="opt_sys_drift_desc">When the attendance portal asks for your location, the overridden function intercepts the request. Instead of asking your hardware GPS, it immediately responds with the exact Latitude and Longitude you selected in the popup. To make the spoof appear legitimate, it also applies a slight random "accuracy drift" (e.g. 15-25 meters) so the data resembles a real mobile phone GPS sensor.</p>
         
-        <h3>3. Real-time Communication</h3>
-        <p>The popup uses the <code>chrome.storage</code> API. When you drag the map pin in the popup, the new coordinates are saved instantly. A background service worker detects this change and broadcasts it directly to any open attendance tabs, allowing you to "walk" around the map without reloading the portal.</p>
+        <h3 data-i18n="opt_sys_comm_title">3. Real-time Communication</h3>
+        <p data-i18n="opt_sys_comm_desc">The popup uses the <code>chrome.storage</code> API. When you drag the map pin in the popup, the new coordinates are saved instantly. A background service worker detects this change and broadcasts it directly to any open attendance tabs, allowing you to "walk" around the map without reloading the portal.</p>
       </section>
 
       <section id="risks">
-        <h2>Risks & Disclaimers</h2>
+        <h2 data-i18n="opt_risks_title">Risks & Disclaimers</h2>
         <div class="warning-box">
           <strong>
-            <!-- PURPOSE (R-04): Alert triangle icon explicitly flags the disclaimer warning -->
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 4px;">
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
               <line x1="12" y1="9" x2="12" y2="13"></line>
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
-            Disclaimer:
-          </strong> This extension is provided for educational, research, and privacy purposes. You are solely responsible for how you use it.
+            <span data-i18n="opt_risks_disclaimer_label">Disclaimer:</span>
+          </strong> <span data-i18n="opt_risks_disclaimer_text">This extension is provided for educational, research, and privacy purposes. You are solely responsible for how you use it.</span>
         </div>
         <ul>
-          <li><strong>Academic Integrity:</strong> Spoofing your location to submit attendance when you are not physically present may violate university policies or academic integrity codes. Misuse can lead to severe disciplinary action.</li>
-          <li><strong>IP Address Detection:</strong> This extension only overrides browser GPS coordinates (frontend). It does <strong>not</strong> change your IP address. If the server checks whether your IP address belongs to the campus network, they will know you are off-campus regardless of your GPS coordinates.</li>
-          <li><strong>VPN Usage:</strong> To mitigate IP detection, you should use the official OpenVPN campus profile alongside this extension. However, be aware that system administrators can easily identify VPN IP pools.</li>
-          <li><strong>Telemetry & Timing:</strong> Sophisticated anti-cheat systems can detect spoofing by measuring response times (real GPS takes a few seconds to lock on, whereas spoofed GPS responds instantly) or by looking for missing browser sensor telemetry.</li>
+          <li data-i18n="opt_risks_item1" data-i18n-html="true"><strong>Academic Integrity:</strong> Spoofing your location to submit attendance when you are not physically present may violate university policies or academic integrity codes. Misuse can lead to severe disciplinary action.</li>
+          <li data-i18n="opt_risks_item2" data-i18n-html="true"><strong>IP Address Detection:</strong> This extension only overrides browser GPS coordinates (frontend). It does <strong>not</strong> change your IP address. If the server checks whether your IP address belongs to the campus network, they will know you are off-campus regardless of your GPS coordinates.</li>
+          <li data-i18n="opt_risks_item3" data-i18n-html="true"><strong>VPN Usage:</strong> To mitigate IP detection, you should use the official OpenVPN campus profile alongside this extension. However, be aware that system administrators can easily identify VPN IP pools.</li>
+          <li data-i18n="opt_risks_item4" data-i18n-html="true"><strong>Telemetry & Timing:</strong> Sophisticated anti-cheat systems can detect spoofing by measuring response times (real GPS takes a few seconds to lock on, whereas spoofed GPS responds instantly) or by looking for missing browser sensor telemetry.</li>
         </ul>
       </section>
 
       <section id="qna">
-        <h2>Thorough Q&A</h2>
+        <h2 data-i18n="opt_qna_title">Thorough Q&A</h2>
         
         <div class="qna-item">
-          <div class="qna-q">Q: I set my location, but the website still says I'm far away. Why?</div>
-          <p>A: The website might have cached your previous location, or it might be relying on your IP Address rather than GPS. Try hard-refreshing the page (Ctrl+F5). If that fails, ensure the extension toggle is strictly set to "Active" in the popup.</p>
+          <div class="qna-q" data-i18n="opt_qna_q1">Q: I set my location, but the website still says I'm far away. Why?</div>
+          <p data-i18n="opt_qna_a1">A: The website might have cached your previous location, or it might be relying on your IP Address rather than GPS. Try hard-refreshing the page (Ctrl+F5). If that fails, ensure the extension toggle is strictly set to "Active" in the popup.</p>
         </div>
 
         <div class="qna-item">
-          <div class="qna-q">Q: Do I need a VPN to use this?</div>
-          <p>A: For frontend GPS bypass, no. However, if the attendance portal requires you to be connected to the campus Wi-Fi network to submit, you will need to use a VPN (like OpenVPN Connect with your campus profile) to route your traffic through the university servers.</p>
+          <div class="qna-q" data-i18n="opt_qna_q2">Q: Do I need a VPN to use this?</div>
+          <p data-i18n="opt_qna_a2">A: For frontend GPS bypass, no. However, if the attendance portal requires you to be connected to the campus Wi-Fi network to submit, you will need to use a VPN (like OpenVPN Connect with your campus profile) to route your traffic through the university servers.</p>
         </div>
 
         <div class="qna-item">
-          <div class="qna-q">Q: Can the administrators detect this extension?</div>
-          <p>A: Websites cannot natively see what extensions you have installed due to browser sandboxing. However, they <em>can</em> infer spoofing if your GPS coordinates perfectly match the center of a building with exactly 25.0 meters of accuracy, or if you jump 10 miles in 2 seconds. The extension tries to mitigate this by adding slight randomness.</p>
+          <div class="qna-q" data-i18n="opt_qna_q3">Q: Can the administrators detect this extension?</div>
+          <p data-i18n="opt_qna_a3">A: Websites cannot natively see what extensions you have installed due to browser sandboxing. However, they can infer spoofing if your GPS coordinates perfectly match the center of a building with exactly 25.0 meters of accuracy, or if you jump 10 miles in 2 seconds. The extension tries to mitigate this by adding slight randomness.</p>
         </div>
 
         <div class="qna-item">
-          <div class="qna-q">Q: Why did I get a timeout error when taking attendance?</div>
-          <p>A: Sometimes the portal's backend server is overloaded, or your VPN connection dropped packets. The extension answers the GPS request instantly, so timeouts are almost always an issue with your network or the target server, not the spoofer.</p>
+          <div class="qna-q" data-i18n="opt_qna_q4">Q: Why did I get a timeout error when taking attendance?</div>
+          <p data-i18n="opt_qna_a4">A: Sometimes the portal's backend server is overloaded, or your VPN connection dropped packets. The extension answers the GPS request instantly, so timeouts are almost always an issue with your network or the target server, not the spoofer.</p>
         </div>
         
         <div class="qna-item">
-          <div class="qna-q">Q: Does this work on my phone?</div>
-          <p>A: Standard Chrome for Android/iOS does not support extensions. You would need a browser that supports mobile extensions (like Kiwi Browser or Firefox Nightly for Android), but results may vary heavily based on the OS-level location permissions.</p>
+          <div class="qna-q" data-i18n="opt_qna_q5">Q: Does this work on my phone?</div>
+          <p data-i18n="opt_qna_a5">A: Standard Chrome for Android/iOS does not support extensions. You would need a browser that supports mobile extensions (like Kiwi Browser or Firefox Nightly for Android), but results may vary heavily based on the OS-level location permissions.</p>
         </div>
       </section>
 
       <section id="log">
-        <h2>Submission Log</h2>
+        <h2 data-i18n="opt_log_title">Submission Log</h2>
         <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <span>Last 50 coordinate submissions recorded locally:</span>
-          <span class="badge badge-success"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Accepted</span>
-          <span class="badge badge-danger"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Rejected</span>
-          <span class="badge badge-warning"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Pending</span>
+          <span data-i18n="opt_log_lead">Last 50 coordinate submissions recorded locally:</span>
+          <span class="badge badge-success"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span class="i18n-text" data-i18n="opt_badge_accepted">Accepted</span></span>
+          <span class="badge badge-danger"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> <span class="i18n-text" data-i18n="opt_badge_rejected">Rejected</span></span>
+          <span class="badge badge-warning"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span class="i18n-text" data-i18n="opt_badge_pending">Pending</span></span>
         </div>
         <div id="logList" class="log-container" style="max-height:360px; overflow-y:auto; padding:0;">Loading...</div>
         <div style="display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap;">
           <button id="exportCsvBtn" class="btn">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export CSV
+            <span class="i18n-text" data-i18n="opt_log_export_csv">Export CSV</span>
           </button>
           <button id="exportJsonBtn" class="btn btn-secondary">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            Export JSON
+            <span class="i18n-text" data-i18n="opt_log_export_json">Export JSON</span>
           </button>
           <button id="clearLogBtn" class="btn btn-secondary">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            Clear Log
+            <span class="i18n-text" data-i18n="opt_log_clear">Clear Log</span>
           </button>
         </div>
       </section>
