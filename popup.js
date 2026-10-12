@@ -12,6 +12,7 @@ const toastText      = document.getElementById('toastText');
 const presetBtns     = document.querySelectorAll('.preset-btn:not(#preset-myloc)');
 const myLocBtn       = document.getElementById('preset-myloc');
 const themeSelect    = document.getElementById('themeSelect');
+const langSelect     = document.getElementById('langSelect');
 const optionsBtn     = document.getElementById('optionsBtn');
 const testModeToggle = document.getElementById('testModeToggle');
 const diagGpsStatus  = document.getElementById('diagGpsStatus');
@@ -99,6 +100,7 @@ const K = {
   customPresets: 'cfg_cp',
   timetable: 'cfg_tt',
   relayUrl:  'cfg_ru',
+  lang:      'cfg_l',
 };
 
 // ── Velocity / Impossible Travel Limiter ───────────────────────────────
@@ -564,7 +566,7 @@ async function loadCustomPresets() {
 
 // ── Load saved settings ──────────────────────────────
 async function loadSettings() {
-  const r = await storageGet([K.enabled, K.lat, K.lng, K.theme, K.profile, K.testMode]);
+  const r = await storageGet([K.enabled, K.lat, K.lng, K.theme, K.profile, K.testMode, K.lang]);
 
   const enabled  = r[K.enabled] === true;
   const lat      = r[K.lat]     || '';
@@ -572,6 +574,14 @@ async function loadSettings() {
   const theme    = r[K.theme]   || 'system';
   const profile  = r[K.profile] || 'mobile_gps';
   const testMode = r[K.testMode] === true;
+  const lang     = r[K.lang]    || (navigator.language && navigator.language.startsWith('id') ? 'id' : 'en');
+
+  // Apply localization
+  if (typeof I18N !== 'undefined') {
+    I18N.setLang(lang);
+    I18N.applyToDOM();
+  }
+  if (langSelect) langSelect.value = lang;
 
   document.documentElement.setAttribute('data-theme', theme);
   themeSelect.value    = theme;
@@ -925,7 +935,6 @@ saveBtn.addEventListener('click', async () => {
   }
 });
 
-// ── Theme & Options ──────────────────────────────────
 themeSelect.addEventListener('change', async () => {
   const theme = themeSelect.value;
   document.documentElement.setAttribute('data-theme', theme);
@@ -933,6 +942,22 @@ themeSelect.addEventListener('change', async () => {
   data[K.theme] = theme;
   await storageSet(data);
 });
+
+// ── Language Selector ─────────────────────────────────
+if (langSelect) {
+  langSelect.addEventListener('change', async () => {
+    const lang = langSelect.value;
+    if (typeof I18N !== 'undefined') {
+      I18N.setLang(lang);
+      I18N.applyToDOM();
+    }
+    const data = {};
+    data[K.lang] = lang;
+    await storageSet(data);
+    updateStatus(enableToggle.checked, latInput.value, lngInput.value);
+    showToast(lang === 'id' ? 'Bahasa berhasil diubah' : 'Language updated');
+  });
+}
 
 // ── Accuracy Profile Quick-Switch ─────────────────────
 const profileSelect = document.getElementById('profileSelect');
@@ -992,13 +1017,16 @@ function isValidCoord(val) {
 }
 
 function updateStatus(enabled, lat, lng) {
+  const activeWord   = typeof I18N !== 'undefined' ? I18N.t('status_active') : 'Active';
+  const inactiveWord = typeof I18N !== 'undefined' ? I18N.t('status_inactive') : 'Inactive';
+
   if (enabled && isValidCoord(lat) && isValidCoord(lng)) {
     statusDot.className = 'status-dot active';
-    statusText.textContent = `Active • ${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`;
+    statusText.textContent = `${activeWord} • ${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`;
     statusText.className = 'status-text active';
   } else {
     statusDot.classList.remove('active');
-    statusText.textContent = enabled ? 'Active (no coords set)' : 'Inactive';
+    statusText.textContent = enabled ? `${activeWord} (coords?)` : inactiveWord;
     statusText.className   = 'status-text inactive';
   }
 

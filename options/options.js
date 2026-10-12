@@ -15,11 +15,13 @@ const K = {
   customPresets: 'cfg_cp',
   timetable: 'cfg_tt',
   relayUrl: 'cfg_ru',
+  lang: 'cfg_l',
 };
 
 const optLat      = document.getElementById('optLat');
 const optLng      = document.getElementById('optLng');
 const optTheme    = document.getElementById('optTheme');
+const optLang     = document.getElementById('optLang');
 const optDomain   = document.getElementById('optDomain');
 const optRelayUrl = document.getElementById('optRelayUrl');
 const optDevice   = document.getElementById('optDevice');
@@ -69,7 +71,7 @@ function setTheme(theme) {
  * Loads saved configuration from storage and initializes the UI.
  */
 async function loadOptions() {
-  const r = await storageGet([K.lat, K.lng, K.theme, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.relayUrl]);
+  const r = await storageGet([K.lat, K.lng, K.theme, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.relayUrl, K.lang]);
   if (r[K.lat])    optLat.value = r[K.lat];
   if (r[K.lng])    optLng.value = r[K.lng];
   if (optDomain   && r[K.domain])   optDomain.value   = r[K.domain];
@@ -77,6 +79,13 @@ async function loadOptions() {
   if (optVpnLock)  optVpnLock.checked = r[K.vpnLock] !== false;
   if (optTestMode) optTestMode.checked = r[K.testMode] === true;
   if (optDevice)   optDevice.value = r[K.deviceMode] || 'desktop';
+
+  const lang = r[K.lang] || (navigator.language && navigator.language.startsWith('id') ? 'id' : 'en');
+  if (optLang) optLang.value = lang;
+  if (typeof I18N !== 'undefined') {
+    I18N.setLang(lang);
+    I18N.applyToDOM();
+  }
 
   const theme = r[K.theme] || 'system';
   setTheme(theme);
@@ -182,7 +191,13 @@ saveBtn.addEventListener('click', async () => {
     [K.vpnLock]: optVpnLock ? optVpnLock.checked : true,
     [K.deviceMode]: optDevice ? optDevice.value : 'desktop',
     [K.testMode]: optTestMode ? optTestMode.checked : false,
+    [K.lang]: optLang ? optLang.value : 'en',
   };
+
+  if (optLang && typeof I18N !== 'undefined') {
+    I18N.setLang(optLang.value);
+    I18N.applyToDOM();
+  }
 
   await storageSet(data);
   setTheme(theme);
@@ -198,6 +213,17 @@ optTheme.addEventListener('change', async () => {
   data[K.theme] = theme;
   await storageSet(data);
 });
+
+if (optLang) {
+  optLang.addEventListener('change', async () => {
+    const lang = optLang.value;
+    if (typeof I18N !== 'undefined') {
+      I18N.setLang(lang);
+      I18N.applyToDOM();
+    }
+    await storageSet({ [K.lang]: lang });
+  });
+}
 
 // Smooth scroll for nav links
 document.querySelectorAll('nav a').forEach(anchor => {

@@ -9,9 +9,9 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
+const rootDir = path.join(__dirname, '..', '..');
 
 describe('1. Storage Key Schema Parity', () => {
-  const rootDir = path.join(__dirname, '..', '..');
 
   function extractKObject(filePath) {
     const code = fs.readFileSync(filePath, 'utf8');
@@ -33,7 +33,7 @@ describe('1. Storage Key Schema Parity', () => {
     const popupK = extractKObject(path.join(rootDir, 'popup.js'));
     const optK = extractKObject(path.join(rootDir, 'options', 'options.js'));
 
-    const requiredKeys = ['enabled', 'lat', 'lng', 'domain', 'profile', 'vpnLock', 'deviceMode', 'testMode', 'customPresets', 'timetable', 'relayUrl'];
+    const requiredKeys = ['enabled', 'lat', 'lng', 'domain', 'profile', 'vpnLock', 'deviceMode', 'testMode', 'customPresets', 'timetable', 'relayUrl', 'lang'];
 
     requiredKeys.forEach(key => {
       assert.ok(swK[key], `Missing ${key} in service-worker.js`);
@@ -588,6 +588,35 @@ describe('18. Swarm Relay Anti-Replay & Timestamp Verification Contract', () => 
     assert.strictEqual(verifyRequestFreshness(now - 3600000, now).ok, false); // 1 hour ago
   });
 });
+
+describe('19. Multi-Language i18n Localization Engine', () => {
+  const i18n = require(path.join(rootDir, 'i18n.js'));
+
+  test('Normalizes language codes (en, id, ind)', () => {
+    assert.strictEqual(i18n.normalizeLang('en'), 'en');
+    assert.strictEqual(i18n.normalizeLang('EN-US'), 'en');
+    assert.strictEqual(i18n.normalizeLang('id'), 'id');
+    assert.strictEqual(i18n.normalizeLang('ID-ID'), 'id');
+    assert.strictEqual(i18n.normalizeLang('ind'), 'id');
+    assert.strictEqual(i18n.normalizeLang(null), 'en');
+  });
+
+  test('Provides matching translations between English and Indonesian dictionaries', () => {
+    i18n.setLang('en');
+    assert.strictEqual(i18n.t('status_active'), 'Active');
+    assert.strictEqual(i18n.t('save_apply'), 'Save & Apply Coordinates');
+
+    i18n.setLang('id');
+    assert.strictEqual(i18n.t('status_active'), 'Aktif');
+    assert.strictEqual(i18n.t('save_apply'), 'Simpan & Terapkan Koordinat');
+  });
+
+  test('Gracefully falls back to English or key on missing translation', () => {
+    i18n.setLang('id');
+    assert.strictEqual(i18n.t('non_existent_key', 'Fallback Text'), 'Fallback Text');
+  });
+});
+
 
 
 

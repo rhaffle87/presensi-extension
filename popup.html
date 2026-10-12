@@ -768,11 +768,15 @@
         </svg>
       </div>
       <div>
-        <h1>myITS Spoofer</h1>
-        <p>Campus Attendance Bridge</p>
+        <h1 data-i18n="app_title">Attendance Spoofer</h1>
+        <p data-i18n="app_subtitle">Campus Attendance Bridge</p>
       </div>
     </div>
     <div class="header-right">
+      <select id="langSelect" class="theme-select" aria-label="Language" title="Language">
+        <option value="en">EN</option>
+        <option value="id">ID</option>
+      </select>
       <select id="themeSelect" class="theme-select" aria-label="Theme">
         <option value="system">Auto</option>
         <option value="light">Light</option>
@@ -817,11 +821,11 @@
   <div class="tabs-nav">
     <button class="tab-btn active" data-tab="tab-location">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      Location & Presets
+      <span data-i18n="tab_location">Location & Presets</span>
     </button>
     <button class="tab-btn" data-tab="tab-telemetry">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Telemetry & Tools
+      <span data-i18n="tab_telemetry">Telemetry & Tools</span>
     </button>
   </div>
 
@@ -831,7 +835,7 @@
     <div class="map-section">
       <span class="map-label">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-        Map Preview
+        <span data-i18n="map_preview">Map Preview</span>
       </span>
       <div class="map-frame-wrapper">
         <div id="map" class="map-frame"></div>
@@ -842,17 +846,17 @@
     <div class="content">
       <div class="coord-row">
         <div class="input-group">
-          <label for="latInput">Latitude</label>
+          <label for="latInput" data-i18n="latitude">Latitude</label>
           <input type="text" id="latInput" placeholder="-7.2851" autocomplete="off" spellcheck="false" />
         </div>
         <div class="input-group">
-          <label for="lngInput">Longitude</label>
+          <label for="lngInput" data-i18n="longitude">Longitude</label>
           <input type="text" id="lngInput" placeholder="112.7956" autocomplete="off" spellcheck="false" />
         </div>
       </div>
 
       <div class="section-label">
-        <span>Campus Presets (ITS Sukolilo)</span>
+        <span data-i18n="campus_presets">Campus Presets (Main Campus)</span>
       </div>
 
       <div class="presets-grid">
@@ -902,21 +906,21 @@
             <circle cx="12" cy="12" r="7"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/>
           </svg>
           <span class="preset-sublabel" style="display:none;">Current</span>
-          <span class="preset-name">Use Current Real GPS Location</span>
+          <span class="preset-name" data-i18n="my_location">Set to Current Real Location</span>
         </button>
       </div>
 
       <!-- Engine Status Ribbon -->
       <div class="engine-ribbon">
         <div class="engine-chip">
-          <span class="engine-chip-title">Auto-Room Match</span>
+          <span class="engine-chip-title" data-i18n="active_profile">Auto-Room Match</span>
           <span class="engine-chip-val" style="display:inline-flex; align-items:center; gap:3px;">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
             Active
           </span>
         </div>
         <div class="engine-chip">
-          <span class="engine-chip-title">Stealth Suite</span>
+          <span class="engine-chip-title" data-i18n="engine_telemetry">Stealth Suite</span>
           <span class="engine-chip-val" style="display:inline-flex; align-items:center; gap:3px; color:var(--accent);">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             Maximum
@@ -926,7 +930,7 @@
 
       <!-- Device Profile Selector -->
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px; padding: 0 2px;">
-        <label for="profileSelect" style="font-size:11px; color:var(--text-muted); font-weight:500;">Device Profile</label>
+        <label for="profileSelect" style="font-size:11px; color:var(--text-muted); font-weight:500;" data-i18n="active_profile">Device Profile</label>
         <select id="profileSelect" class="theme-select" aria-label="Accuracy Profile">
           <option value="mobile_gps">Mobile GPS (4-10m)</option>
           <option value="desktop">Desktop / IP (20-40m)</option>
@@ -934,7 +938,7 @@
         </select>
       </div>
 
-      <button class="save-btn" id="saveBtn">Apply Changes</button>
+      <button class="save-btn" id="saveBtn" data-i18n="save_apply">Save & Apply Coordinates</button>
     </div>
   </div>
 
@@ -1024,6 +1028,7 @@
   </div>
 
   <script src="compat.js"></script>
+  <script src="i18n.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

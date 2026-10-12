@@ -25,6 +25,7 @@ const K = {
   customPresets: 'cfg_cp',
   timetable: 'cfg_tt',
   relayUrl:  'cfg_ru',
+  lang:      'cfg_l',
 };
 
 
@@ -42,6 +43,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     defaults[K.testMode] = false;
     defaults[K.customPresets] = [];
     defaults[K.timetable] = [];
+    defaults[K.lang]      = 'en';
     chrome.storage.local.set(defaults);
   }
 

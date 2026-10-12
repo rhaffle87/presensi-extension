@@ -407,58 +407,67 @@
     <!-- Sidebar Navigation -->
     <nav>
       <ul>
-        <li><a href="#preferences">Preferences</a></li>
-        <li><a href="#custom-presets">Custom Presets</a></li>
-        <li><a href="#timetable">Class Timetable</a></li>
-        <li><a href="#backup-restore">Backup &amp; Restore</a></li>
-        <li><a href="#management">Management</a></li>
-        <li><a href="#log">Submission Log</a></li>
-        <li><a href="#systems">How It Works</a></li>
-        <li><a href="#risks">Risks &amp; Policies</a></li>
-        <li><a href="#qna">Q&amp;A</a></li>
+        <li><a href="#preferences" data-i18n="nav_preferences">Preferences</a></li>
+        <li><a href="#custom-presets" data-i18n="nav_custom_presets">Custom Presets</a></li>
+        <li><a href="#timetable" data-i18n="nav_timetable">Class Timetable</a></li>
+        <li><a href="#backup-restore" data-i18n="nav_backup_restore">Backup &amp; Restore</a></li>
+        <li><a href="#management" data-i18n="nav_management">Management</a></li>
+        <li><a href="#log" data-i18n="nav_log">Submission Log</a></li>
+        <li><a href="#systems" data-i18n="nav_systems">How It Works</a></li>
+        <li><a href="#risks" data-i18n="nav_risks">Risks &amp; Policies</a></li>
+        <li><a href="#qna" data-i18n="nav_qna">Q&amp;A</a></li>
       </ul>
     </nav>
 
     <!-- Main Content -->
     <main>
       <header>
-        <h1>Options & Help</h1>
-        <p class="subtitle">Attendance Spoofer Documentation</p>
+        <h1 data-i18n="opt_header_title">Options &amp; Help</h1>
+        <p class="subtitle" data-i18n="opt_header_sub">Attendance Spoofer Documentation &amp; Settings</p>
       </header>
 
       <section id="preferences">
-        <h2>Preferences</h2>
+        <h2 data-i18n="opt_pref_title">Preferences</h2>
         <div class="card">
           <div class="grid-2 form-group">
             <div>
-              <label for="optLat">Default Latitude</label>
+              <label for="optLat" data-i18n="opt_default_lat">Default Latitude</label>
               <input type="text" id="optLat" placeholder="-7.285137" autocomplete="off" spellcheck="false" />
             </div>
             <div>
-              <label for="optLng">Default Longitude</label>
+              <label for="optLng" data-i18n="opt_default_lng">Default Longitude</label>
               <input type="text" id="optLng" placeholder="112.795649" autocomplete="off" spellcheck="false" />
             </div>
           </div>
           
           <div class="form-group">
-            <label for="optDomain">Target Domain</label>
+            <label for="optDomain" data-i18n="opt_target_domain">Target Domain</label>
             <input type="text" id="optDomain" placeholder="portal.university.edu" autocomplete="off" spellcheck="false" />
-            <p style="margin-top: 8px; font-size: 12px;">Only applies spoofing when browsing this exact domain.</p>
+            <p style="margin-top: 8px; font-size: 12px;" data-i18n="opt_target_domain_desc">Only applies spoofing when browsing this exact domain.</p>
           </div>
 
           <div class="form-group">
-            <label for="optRelayUrl">OTP Peer Relay URL <span style="font-size:11px; background:var(--border); padding:1px 6px; border-radius:4px; vertical-align:middle;">Optional</span></label>
+            <label for="optRelayUrl" data-i18n="opt_relay_url">OTP Peer Relay URL <span style="font-size:11px; background:var(--border); padding:1px 6px; border-radius:4px; vertical-align:middle;">Optional</span></label>
             <input type="text" id="optRelayUrl" placeholder="https://your-worker.workers.dev" autocomplete="off" spellcheck="false" />
-            <p style="margin-top: 8px; font-size: 12px;">Cloudflare KV worker endpoint. When set, OTP codes and QR tokens are shared with peers in real-time, and session tokens are relayed to <code>/session</code>. Leave blank to disable.</p>
+            <p style="margin-top: 8px; font-size: 12px;" data-i18n="opt_relay_desc">Cloudflare KV worker endpoint. When set, OTP codes and QR tokens are shared with peers in real-time. Leave blank to disable.</p>
           </div>
 
-          <div class="form-group">
-            <label for="optTheme">Theme Preference</label>
-            <select id="optTheme">
-              <option value="system">System Default</option>
-              <option value="light">Light Mode</option>
-              <option value="dark">Dark Mode</option>
-            </select>
+          <div class="grid-2 form-group">
+            <div>
+              <label for="optLang" data-i18n="opt_language">Interface Language</label>
+              <select id="optLang">
+                <option value="en">English (US)</option>
+                <option value="id">Bahasa Indonesia</option>
+              </select>
+            </div>
+            <div>
+              <label for="optTheme">Theme Preference</label>
+              <select id="optTheme">
+                <option value="system">System Default</option>
+                <option value="light">Light Mode</option>
+                <option value="dark">Dark Mode</option>
+              </select>
+            </div>
           </div>
 
           <div class="form-group" style="margin-top: 24px;">
@@ -788,6 +797,7 @@
   </div>
 
   <script src="../compat.js"></script>
+  <script src="../i18n.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

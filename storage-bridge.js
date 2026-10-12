@@ -28,9 +28,10 @@
     customPresets: 'cfg_cp',
     timetable: 'cfg_tt',
     relayUrl: 'cfg_ru',
+    lang:     'cfg_l',
   };
 
-  const ALL_KEYS = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.customPresets, K.timetable, K.relayUrl];
+  const ALL_KEYS = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.customPresets, K.timetable, K.relayUrl, K.lang];
 
   /**
    * Builds the normalized config object from raw chrome.storage payload.

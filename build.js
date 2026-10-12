@@ -14,6 +14,7 @@ const FILES_TO_COPY = [
   'manifest.json',
   'popup.html',
   'compat.js',
+  'i18n.js',
   'storage-bridge.js',
   'README.md',
   'INSTALL.md',
