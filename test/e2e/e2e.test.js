@@ -44,7 +44,7 @@ describe('E2E Diagnostic and Attendance Mock Server', () => {
     assert.ok(res.body.includes('Lokasi berhasil diperoleh'));
   });
 
-  test('GET /ip-check returns Campus IP telemetry matching ITS ASN', async () => {
+  test('GET /ip-check returns Campus IP telemetry matching campus network', async () => {
     const res = await get('/ip-check');
     assert.strictEqual(res.status, 200);
     const parsed = JSON.parse(res.body);

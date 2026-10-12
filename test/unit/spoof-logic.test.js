@@ -486,19 +486,18 @@ describe('13. Backup & Restore JSON Schema Validation', () => {
 describe('15. Network Interceptor Isolation & Portal Scope', () => {
   function isPortalDomain(hostname, targetDomain) {
     if (!hostname) return false;
-    const target = targetDomain ? targetDomain.toLowerCase() : 'portal.university.edu';
+    const target = targetDomain ? targetDomain.toLowerCase() : '';
+    if (!target) return false;
     return (
       hostname === target ||
-      hostname.endsWith('.' + target) ||
-      hostname === 'portal.university.edu' ||
-      hostname.endsWith('.university.edu')
+      hostname.endsWith('.' + target)
     );
   }
 
-  test('Permits official ITS portal and ITS subdomains', () => {
-    assert.strictEqual(isPortalDomain('portal.university.edu'), true);
-    assert.strictEqual(isPortalDomain('presensi.university.edu'), true);
-    assert.strictEqual(isPortalDomain('classroom.university.edu'), true);
+  test('Permits configured portal and its subdomains', () => {
+    assert.strictEqual(isPortalDomain('portal.university.edu', 'portal.university.edu'), true);
+    assert.strictEqual(isPortalDomain('presensi.university.edu', 'university.edu'), true);
+    assert.strictEqual(isPortalDomain('classroom.university.edu', 'university.edu'), true);
   });
 
   test('Permits custom configured targetDomain', () => {
@@ -507,11 +506,11 @@ describe('15. Network Interceptor Isolation & Portal Scope', () => {
   });
 
   test('Strictly isolates external websites (Medium, Google, GitHub)', () => {
-    assert.strictEqual(isPortalDomain('medium.com'), false);
-    assert.strictEqual(isPortalDomain('glyph.medium.com'), false);
-    assert.strictEqual(isPortalDomain('google.com'), false);
-    assert.strictEqual(isPortalDomain('github.com'), false);
-    assert.strictEqual(isPortalDomain('stackoverflow.com'), false);
+    assert.strictEqual(isPortalDomain('medium.com', 'portal.university.edu'), false);
+    assert.strictEqual(isPortalDomain('glyph.medium.com', 'portal.university.edu'), false);
+    assert.strictEqual(isPortalDomain('google.com', 'portal.university.edu'), false);
+    assert.strictEqual(isPortalDomain('github.com', 'portal.university.edu'), false);
+    assert.strictEqual(isPortalDomain('stackoverflow.com', 'portal.university.edu'), false);
   });
 });
 

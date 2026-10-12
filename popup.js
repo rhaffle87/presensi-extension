@@ -221,9 +221,9 @@ async function checkIpOnEnable() {
 
     // Check if connected to Campus Network / VPN
     const isCampusNetwork = Boolean(
-      (isp && (isp.toLowerCase().includes('campus') || isp.toLowerCase().includes('university') || isp.toLowerCase().includes('eduroam') || isp.toLowerCase().includes('sepuluh nopember') || isp.toLowerCase().includes('its'))) ||
-      (org && (org.toLowerCase().includes('campus') || org.toLowerCase().includes('university') || org.toLowerCase().includes('eduroam') || org.toLowerCase().includes('sepuluh nopember') || org.toLowerCase().includes('its'))) ||
-      (domain && (domain.toLowerCase().includes('.edu') || domain.toLowerCase().includes('.ac.') || domain.toLowerCase().includes('university.edu')))
+      (isp && (isp.toLowerCase().includes('campus') || isp.toLowerCase().includes('university') || isp.toLowerCase().includes('eduroam'))) ||
+      (org && (org.toLowerCase().includes('campus') || org.toLowerCase().includes('university') || org.toLowerCase().includes('eduroam'))) ||
+      (domain && (domain.toLowerCase().includes('.edu') || domain.toLowerCase().includes('.ac.')))
     );
                           
     if (diagIpStatus) {

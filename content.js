@@ -110,15 +110,13 @@
     'w3schools.com',
     'where-am-i.org',
     'localhost',
-    '127.0.0.1',
-    'portal.university.edu'
+    '127.0.0.1'
   ];
 
   function isDomainAllowed(hostname, targetDomain, testMode) {
     if (testMode === true) return true;
     if (!hostname) return false;
-    if (hostname === targetDomain || (targetDomain && hostname.endsWith('.' + targetDomain))) return true;
-    if (hostname === 'portal.university.edu' || hostname.endsWith('.university.edu')) return true;
+    if (targetDomain && (hostname === targetDomain || hostname.endsWith('.' + targetDomain))) return true;
     for (let i = 0; i < DIAGNOSTIC_DOMAINS.length; i++) {
       const d = DIAGNOSTIC_DOMAINS[i];
       if (hostname === d || hostname.endsWith('.' + d)) return true;
@@ -836,7 +834,7 @@
     if (!info || (!info.tm_mulai && info.status !== 'sedang_berlangsung')) return;
     const host = window.location.hostname;
     const targetDomain = (currentConfig && currentConfig.targetDomain) || 'portal.university.edu';
-    if (host !== targetDomain && !host.endsWith('.' + targetDomain) && host !== 'portal.university.edu' && !host.endsWith('.university.edu')) {
+    if (host !== targetDomain && !host.endsWith('.' + targetDomain)) {
       return;
     }
     _activeMeetingData = info;
@@ -1134,7 +1132,7 @@
       } catch (_) {}
     }
 
-    // 2. Dual-lock fallback: DOM UI Automation on portal.university.edu
+    // 2. Dual-lock fallback: DOM UI Automation on portal
     if (!apiSuccess) {
       try {
         _simulateDomCheckIn(code);
@@ -1299,12 +1297,11 @@
   function _isPortalDomain() {
     const currentHost = window.location.hostname;
     if (!currentHost) return false;
-    const targetDomain = (currentConfig && currentConfig.targetDomain) ? currentConfig.targetDomain.toLowerCase() : 'portal.university.edu';
+    const targetDomain = (currentConfig && currentConfig.targetDomain) ? currentConfig.targetDomain.toLowerCase() : '';
+    if (!targetDomain) return false;
     return (
       currentHost === targetDomain ||
-      currentHost.endsWith('.' + targetDomain) ||
-      currentHost === 'portal.university.edu' ||
-      currentHost.endsWith('.university.edu')
+      currentHost.endsWith('.' + targetDomain)
     );
   }
 
