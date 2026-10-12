@@ -431,7 +431,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         cfg_sess: { auth, domain: domain || 'portal.university.edu', ts: ts || Date.now() }
       });
     }
-    sendResponse({ ok: true });
+  // ── CSP-Immune Relay Fetch Proxy (bypasses page connect-src CSP) ─────────
+  if (message.type === 'RELAY_PROXY_FETCH') {
+    fetch(message.url, message.options || {})
+      .then(async (r) => {
+        const text = await r.text().catch(() => '');
+        let json = null;
+        try { json = JSON.parse(text); } catch (_) {}
+        sendResponse({ ok: r.ok, status: r.status, data: json, text });
+      })
+      .catch((err) => {
+        sendResponse({ ok: false, error: (err && err.message) || 'Network error' });
+      });
     return true;
   }
 

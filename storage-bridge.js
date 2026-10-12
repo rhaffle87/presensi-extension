@@ -149,10 +149,31 @@
     } catch (_) {}
   }
 
+  // --- Relay Fetch Bridge (MAIN world -> Service Worker -> Relay Worker) ---
+  function handleRelayFetch(e) {
+    try { e.stopImmediatePropagation(); } catch (_) {}
+    if (!isContextValid()) return;
+    try {
+      const data = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail;
+      if (!data || !data.reqId || !data.url) return;
+      chrome.runtime.sendMessage({
+        type: 'RELAY_PROXY_FETCH',
+        url: data.url,
+        options: data.options
+      }, (res) => {
+        try {
+          const resName = '__gps_relay_res_' + data.reqId;
+          window.dispatchEvent(new CustomEvent(resName, { detail: JSON.stringify(res || { ok: false }) }));
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
   try {
     window.addEventListener('__gps_sync_req', handleSyncReq, true);
     window.addEventListener('__gps_telemetry_msg', handleTelemetry, true);
     window.addEventListener('__gps_update_coords', handleUpdateCoords, true);
+    window.addEventListener('__gps_relay_req', handleRelayFetch, true);
   } catch (_) {}
 
   try {

