@@ -447,6 +447,12 @@
           </div>
 
           <div class="form-group">
+            <label for="optRelayUrl">OTP Peer Relay URL <span style="font-size:11px; background:var(--border); padding:1px 6px; border-radius:4px; vertical-align:middle;">Optional</span></label>
+            <input type="text" id="optRelayUrl" placeholder="https://your-worker.workers.dev" autocomplete="off" spellcheck="false" />
+            <p style="margin-top: 8px; font-size: 12px;">Cloudflare KV worker endpoint. When set, OTP codes and QR tokens are shared with peers in real-time, and session tokens are relayed to <code>/session</code>. Leave blank to disable.</p>
+          </div>
+
+          <div class="form-group">
             <label for="optTheme">Theme Preference</label>
             <select id="optTheme">
               <option value="system">System Default</option>

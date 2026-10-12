@@ -14,12 +14,14 @@ const K = {
   testMode: 'cfg_tm',
   customPresets: 'cfg_cp',
   timetable: 'cfg_tt',
+  relayUrl: 'cfg_ru',
 };
 
 const optLat      = document.getElementById('optLat');
 const optLng      = document.getElementById('optLng');
 const optTheme    = document.getElementById('optTheme');
 const optDomain   = document.getElementById('optDomain');
+const optRelayUrl = document.getElementById('optRelayUrl');
 const optDevice   = document.getElementById('optDevice');
 const optVpnLock  = document.getElementById('optVpnLock');
 const optTestMode = document.getElementById('optTestMode');
@@ -67,10 +69,11 @@ function setTheme(theme) {
  * Loads saved configuration from storage and initializes the UI.
  */
 async function loadOptions() {
-  const r = await storageGet([K.lat, K.lng, K.theme, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode]);
+  const r = await storageGet([K.lat, K.lng, K.theme, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.relayUrl]);
   if (r[K.lat])    optLat.value = r[K.lat];
   if (r[K.lng])    optLng.value = r[K.lng];
-  if (optDomain && r[K.domain]) optDomain.value = r[K.domain];
+  if (optDomain   && r[K.domain])   optDomain.value   = r[K.domain];
+  if (optRelayUrl && r[K.relayUrl]) optRelayUrl.value = r[K.relayUrl];
   if (optVpnLock)  optVpnLock.checked = r[K.vpnLock] !== false;
   if (optTestMode) optTestMode.checked = r[K.testMode] === true;
   if (optDevice)   optDevice.value = r[K.deviceMode] || 'desktop';
@@ -175,6 +178,7 @@ saveBtn.addEventListener('click', async () => {
     [K.lng]: lng,
     [K.theme]: theme,
     [K.domain]: domain,
+    [K.relayUrl]: optRelayUrl ? optRelayUrl.value.trim() : '',
     [K.vpnLock]: optVpnLock ? optVpnLock.checked : true,
     [K.deviceMode]: optDevice ? optDevice.value : 'desktop',
     [K.testMode]: optTestMode ? optTestMode.checked : false,

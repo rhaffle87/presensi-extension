@@ -27,9 +27,10 @@
     testMode: 'cfg_tm',
     customPresets: 'cfg_cp',
     timetable: 'cfg_tt',
+    relayUrl: 'cfg_ru',
   };
 
-  const ALL_KEYS = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.customPresets, K.timetable];
+  const ALL_KEYS = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.customPresets, K.timetable, K.relayUrl];
 
   /**
    * Builds the normalized config object from raw chrome.storage payload.
@@ -47,6 +48,7 @@
       testMode:      result[K.testMode]      === true,
       customPresets: result[K.customPresets] || [],
       timetable:     result[K.timetable]     || [],
+      relayUrl:      result[K.relayUrl]      || null,
     };
   }
 
