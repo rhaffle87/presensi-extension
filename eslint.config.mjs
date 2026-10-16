@@ -55,6 +55,9 @@ export default [
         module: "readonly",
         process: "readonly",
         __dirname: "readonly",
+        Buffer: "readonly",
+        I18N: "readonly",
+        BroadcastChannel: "readonly",
         L: "readonly"
       }
     },

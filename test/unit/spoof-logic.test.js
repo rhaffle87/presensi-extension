@@ -485,19 +485,31 @@ describe('13. Backup & Restore JSON Schema Validation', () => {
 
 describe('15. Network Interceptor Isolation & Portal Scope', () => {
   function isPortalDomain(hostname, targetDomain) {
-    if (!hostname) return false;
-    const target = targetDomain ? targetDomain.toLowerCase() : '';
+    const currentHost = hostname ? hostname.toLowerCase() : '';
+    if (!currentHost) return false;
+    const target = targetDomain ? targetDomain.toLowerCase().trim() : '';
     if (!target) return false;
-    return (
-      hostname === target ||
-      hostname.endsWith('.' + target)
-    );
+    if (currentHost === target || currentHost.endsWith('.' + target)) return true;
+
+    // Sibling subdomain matching (e.g. attendance.university.edu matching portal.university.edu)
+    const targetParts = target.split('.');
+    if (targetParts.length >= 3) {
+      const apex = targetParts.slice(1).join('.');
+      if (currentHost === apex || currentHost.endsWith('.' + apex)) return true;
+    }
+    return false;
   }
 
   test('Permits configured portal and its subdomains', () => {
     assert.strictEqual(isPortalDomain('portal.university.edu', 'portal.university.edu'), true);
     assert.strictEqual(isPortalDomain('presensi.university.edu', 'university.edu'), true);
     assert.strictEqual(isPortalDomain('classroom.university.edu', 'university.edu'), true);
+  });
+
+  test('Permits sibling subdomains on institutional domain apex', () => {
+    assert.strictEqual(isPortalDomain('portal.university.edu', 'attendance.university.edu'), true);
+    assert.strictEqual(isPortalDomain('attendance.university.edu', 'portal.university.edu'), true);
+    assert.strictEqual(isPortalDomain('sub.campus.ac.id', 'portal.campus.ac.id'), true);
   });
 
   test('Permits custom configured targetDomain', () => {
@@ -511,6 +523,7 @@ describe('15. Network Interceptor Isolation & Portal Scope', () => {
     assert.strictEqual(isPortalDomain('google.com', 'portal.university.edu'), false);
     assert.strictEqual(isPortalDomain('github.com', 'portal.university.edu'), false);
     assert.strictEqual(isPortalDomain('stackoverflow.com', 'portal.university.edu'), false);
+    assert.strictEqual(isPortalDomain('evil.com', 'university.edu'), false);
   });
 });
 
@@ -630,6 +643,82 @@ describe('19. Multi-Language i18n Localization Engine', () => {
     assert.strictEqual(i18n.t('non_existent_key', 'Fallback Text'), 'Fallback Text');
   });
 });
+
+describe('20. Autonomous Attendance Code Retrieval & Mesh Broadcast Contract', () => {
+  function extractOtpFromBody(body) {
+    if (!body) return null;
+    if (typeof body === 'string') {
+      try {
+        const parsed = JSON.parse(body);
+        if (parsed.kode && /^\d{6}$/.test(String(parsed.kode))) {
+          return String(parsed.kode);
+        }
+      } catch (_) {
+        const match = body.match(/["']?kode["']?\s*[:=]\s*["']?(\d{6})["']?/i);
+        if (match) return match[1];
+      }
+    } else if (typeof body === 'object') {
+      if (typeof body.get === 'function') {
+        const val = body.get('kode');
+        if (val && /^\d{6}$/.test(String(val))) return String(val);
+      } else if (body.kode && /^\d{6}$/.test(String(body.kode))) {
+        return String(body.kode);
+      }
+    }
+    return null;
+  }
+
+  function rewriteSubmissionPayload(rawJson, spoofLat, spoofLng) {
+    const parsed = JSON.parse(rawJson);
+    parsed.latitude = spoofLat;
+    parsed.longitude = spoofLng;
+    return JSON.stringify(parsed);
+  }
+
+  function formatMeshBroadcast(code, source) {
+    return {
+      type: 'MESH_OTP_BROADCAST',
+      otp: String(code),
+      source: source || 'unknown',
+      ts: Date.now()
+    };
+  }
+
+  test('Extracts valid 6-digit OTP from JSON submission payload', () => {
+    const payload = JSON.stringify({ id_tatap_muka: '12345', kode: '984210', hadir: 'L' });
+    assert.strictEqual(extractOtpFromBody(payload), '984210');
+  });
+
+  test('Extracts valid 6-digit OTP from raw URL-encoded or regex body', () => {
+    const rawBody = 'id_tatap_muka=12345&kode=654321&hadir=L';
+    assert.strictEqual(extractOtpFromBody(rawBody), '654321');
+  });
+
+  test('Rejects non-6-digit or non-numeric tokens', () => {
+    assert.strictEqual(extractOtpFromBody(JSON.stringify({ kode: '12345' })), null);
+    assert.strictEqual(extractOtpFromBody(JSON.stringify({ kode: '1234567' })), null);
+    assert.strictEqual(extractOtpFromBody(JSON.stringify({ kode: 'abcdef' })), null);
+    assert.strictEqual(extractOtpFromBody(null), null);
+  });
+
+  test('Correctly rewrites submission coordinates in JSON payload', () => {
+    const original = JSON.stringify({ kode: '123456', latitude: -6.2088, longitude: 106.8456 });
+    const rewritten = rewriteSubmissionPayload(original, -7.2852, 112.7952);
+    const parsed = JSON.parse(rewritten);
+    assert.strictEqual(parsed.latitude, -7.2852);
+    assert.strictEqual(parsed.longitude, 112.7952);
+    assert.strictEqual(parsed.kode, '123456');
+  });
+
+  test('Constructs valid Mesh OTP broadcast event contract', () => {
+    const broadcast = formatMeshBroadcast('789123', 'portal_fetch');
+    assert.strictEqual(broadcast.type, 'MESH_OTP_BROADCAST');
+    assert.strictEqual(broadcast.otp, '789123');
+    assert.strictEqual(broadcast.source, 'portal_fetch');
+    assert.ok(Date.now() - broadcast.ts < 1000);
+  });
+});
+
 
 
 

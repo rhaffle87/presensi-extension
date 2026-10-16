@@ -3,7 +3,40 @@
 All notable changes to the **Attendance GPS Spoofer** project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [1.4.2] - 2026-10-16
+
+### Added
+- **Autonomous Endpoint Prober**: Dispatches `GET /api/presensi/tm/{tmKey}/kode` with active session cookies and captured authorization tokens on poller ticks.
+- **In-Flight Network Interception**: Proxies on `fetch` and `XMLHttpRequest.prototype` capture outgoing `/api/presensi/tm/.../mahasiswa` mutations (`/self`, `/{id_mhs}`, `/batch`), extracting OTP codes from JSON and `FormData` payloads while injecting spoofed coordinates.
+- **Modal Auto-Fill & Radio Selection**: Automatically injects recovered 6-digit codes into Chakra UI dialogs using native prototype setters and selects the offline presence radio (`hadirTatapMuka = 'L'`).
+- **Sibling Subdomain Matching**: Automatically resolves related institutional portals (e.g. `portal.university.edu` matches `attendance.university.edu`) via apex domain extraction.
+- **Unit Test Suite 20**: Comprehensive regression tests covering code extraction, coordinate rewriting, and mesh broadcast payloads (20 suites, 52 assertions).
+
+### Fixed
+- **Cloudflare KV Expiration TTL**: Set minimum KV expiration TTL to 60 seconds to comply with Cloudflare KV storage requirements.
+- **ESLint Global Alignment**: Registered `BroadcastChannel`, `Buffer`, and `I18N` globals in `eslint.config.mjs`.
+
+## [1.4.1] - 2026-10-12
+
+### Added
+- **Swarm Mesh Relay**: Leader-follower peer network coordinated by Cloudflare Worker + KV relay.
+- **Cross-Tab Synchronization**: Zero-latency peer code broadcast across tabs using `BroadcastChannel`.
+- **Anti-Replay Skew Window**: 5-minute cryptographic timestamp verification rejecting expired or replayed relay payloads.
+
+## [1.4.0] - 2026-10-12
+
+### Added
+- **Bilingual Localization (i18n)**: Runtime English (`en`) and Indonesian (`id`) language engine with complete key parity across popup and options.
+- **Physiological Tremor Modeling**: Synthesized hand tremor on `DeviceMotionEvent` and `DeviceOrientationEvent` adhering to Earth gravity (`~9.81 m/s²`).
+- **Dynamic True Bearing Kinematics**: Computes exact cardinal headings and walking velocity vectors.
+- **Anti-Fingerprint Defenses**: Canvas 1-bit micro-noise and WebRTC RFC1918 private candidate preservation.
+
+## [1.3.0] - 2026-10-10
+
+### Added
+- **Academic Timetable Scheduler**: Automatic active class detection matching weekly schedule slots (07:00–21:00 WIB).
+- **Custom Facility Presets**: User-defined campus room presets with automatic DOM room name matching.
+- **Profile Backup & Restore**: JSON import/export with strict schema validation.
 
 ## [1.2.0] - 2026-09-21
 

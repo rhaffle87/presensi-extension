@@ -115,12 +115,12 @@ export default {
       // If leader doesn't exist, is expired (> 25s), or is this peer, assign leadership
       if (!leaderData || (now - (leaderData.ts || 0) > 25000) || leaderData.peerId === peerId) {
         leaderData = { peerId, ts: now };
-        await env.RELAY.put('mesh:leader', JSON.stringify(leaderData), { expirationTtl: 30 });
+        await env.RELAY.put('mesh:leader', JSON.stringify(leaderData), { expirationTtl: 60 });
         isLeader = true;
       }
 
-      // Record peer liveness
-      await env.RELAY.put('peer:' + peerId, JSON.stringify({ ts: now, isLeader, meta: body }), { expirationTtl: 40 });
+      // Record peer liveness (Cloudflare KV minimum expirationTtl is 60s)
+      await env.RELAY.put('peer:' + peerId, JSON.stringify({ ts: now, isLeader, meta: body }), { expirationTtl: 60 });
 
       // Return current swarm status + latest known OTP & state
       let latestOtp = null;
