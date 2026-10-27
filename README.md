@@ -1,4 +1,4 @@
-# Attendance GPS Spoofer — v1.4.2
+# Attendance GPS Spoofer (presensi-extension) — v1.5.0
 
 > High-assurance geolocation emulator, sensor fusion synthesizer, and autonomous attendance code synchronizer for university portals.
 
@@ -15,7 +15,7 @@
                         DOM Mutation / XHR & Fetch Probe
                                           |
         +---------------------------------v---------------------------------+
-        |                    presensi-extension (v1.4.2)                     |
+        |                    presensi-extension (v1.5.0)                     |
         |                                                                   |
         |  +---------------------+  +-----------------+  +---------------+  |
         |  | Geolocation Hook    |  | Sensor Fusion   |  | Network Proxy |  |

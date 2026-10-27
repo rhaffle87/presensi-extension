@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Attendance GPS Spoofer",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "Override geolocation to submit attendance with custom campus coordinates. Configurable for any portal.",
   "browser_specific_settings": {
     "gecko": {
@@ -22,7 +22,6 @@
     "activeTab",
     "scripting",
     "tabs",
-    "geolocation",
     "notifications",
     "alarms",
     "declarativeNetRequest",

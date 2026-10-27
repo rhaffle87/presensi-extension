@@ -3,7 +3,20 @@
 All notable changes to the **Attendance GPS Spoofer** project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-## [1.4.2] - 2026-10-16
+
+## [1.5.0] - 2026-10-27
+
+### Added
+- **Automated CI/CD Pipeline**: Added `.github/workflows/ci.yml` verifying linting, unit tests, and E2E suites on every pull request and push to master.
+- **Cryptographic Bridge Isolation**: 128-bit cryptographic nonces (`crypto.getRandomValues`) and event capture phase isolation (`stopImmediatePropagation`) between extension content scripts and webpage DOM.
+- **Bidirectional Real-Time Options Sync**: Real-time `chrome.storage.onChanged` observers with sub-350ms echo suppression for seamless cross-tab configuration synchronization.
+- **Unit Test Expansion**: Added Suites 21–23 to `test/unit/spoof-logic.test.js`, bringing automated testing to 23 suites and 61 assertions.
+
+### Changed
+- **Serverless Backend Consolidation**: Deprecated and purged legacy `serverless/` folder in favor of hardened `relay-worker/` with dynamic strict CORS, 6-digit OTP schema checks, and sliding-window IP rate limiting.
+- **Pruned Redundant Permissions**: Removed invasive `"geolocation"` permission from `manifest.json`, eliminating browser warning "Detect your physical location" and honoring privacy standards.
+- **Leaflet Clean Asset Neutralization**: Neutralized default Leaflet asset URLs with lightweight inline SVG `L.divIcon`, eliminating 404 image errors under extension URL schemes.
+- **Automated Version Synchronization**: `build.js` now programmatically synchronizes `manifest.json`, `package.json`, and `package-lock.json`.
 
 ### Added
 - **Autonomous Endpoint Prober**: Dispatches `GET /api/presensi/tm/{tmKey}/kode` with active session cookies and captured authorization tokens on poller ticks.

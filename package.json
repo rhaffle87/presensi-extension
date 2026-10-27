@@ -1,8 +1,8 @@
 {
   "$schema": "./.vscode/package.schema.json",
   "name": "presensi-extension",
-  "version": "1.4.2",
-  "description": "Chrome extension to override geolocation on portal.university.edu",
+  "version": "1.5.0",
+  "description": "Override geolocation to submit attendance with custom campus coordinates. Configurable for any portal.",
   "scripts": {
     "build": "node build.js",
     "lint": "eslint .",
