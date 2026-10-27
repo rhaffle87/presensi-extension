@@ -507,8 +507,8 @@ describe('15. Network Interceptor Isolation & Portal Scope', () => {
   });
 
   test('Permits sibling subdomains on institutional domain apex', () => {
-    assert.strictEqual(isPortalDomain('portal.university.edu', 'attendance.university.edu'), true);
-    assert.strictEqual(isPortalDomain('attendance.university.edu', 'portal.university.edu'), true);
+    assert.strictEqual(isPortalDomain('portal.institution.edu', 'attendance.institution.edu'), true);
+    assert.strictEqual(isPortalDomain('attendance.institution.edu', 'portal.institution.edu'), true);
     assert.strictEqual(isPortalDomain('sub.campus.ac.id', 'portal.campus.ac.id'), true);
   });
 
@@ -523,7 +523,7 @@ describe('15. Network Interceptor Isolation & Portal Scope', () => {
     assert.strictEqual(isPortalDomain('google.com', 'portal.university.edu'), false);
     assert.strictEqual(isPortalDomain('github.com', 'portal.university.edu'), false);
     assert.strictEqual(isPortalDomain('stackoverflow.com', 'portal.university.edu'), false);
-    assert.strictEqual(isPortalDomain('evil.com', 'university.edu'), false);
+    assert.strictEqual(isPortalDomain('evil.com', 'institution.edu'), false);
   });
 });
 

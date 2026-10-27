@@ -7,7 +7,7 @@
 const https = require('https');
 const assert = require('assert');
 
-const TARGET_HOST = 'portal.university.edu';
+const TARGET_HOST = process.env.TARGET_HOST || 'portal.university.edu';
 
 async function probeDomainNetwork() {
   console.log(`\n1. Target Domain Network & Header Audit [${TARGET_HOST}]`);
@@ -70,7 +70,7 @@ function probeDomainMatchingCapability() {
 
   const testCases = [
     { host: 'portal.university.edu', target: 'portal.university.edu', expected: true, desc: 'Exact target domain' },
-    { host: 'attendance.university.edu', target: 'portal.university.edu', expected: true, desc: 'Sibling subdomain (presensi vs mia)' },
+    { host: 'attendance.university.edu', target: 'portal.university.edu', expected: true, desc: 'Sibling subdomain (attendance vs portal)' },
     { host: 'sso.university.edu', target: 'portal.university.edu', expected: true, desc: 'Sibling subdomain (sso.university.edu)' },
     { host: 'sub.portal.university.edu', target: 'portal.university.edu', expected: true, desc: 'Deep nested subdomain' },
     { host: 'evil-university.attacker.com', target: 'portal.university.edu', expected: false, desc: 'Spoofed suffix domain attack' },

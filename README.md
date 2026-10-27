@@ -6,36 +6,41 @@
 
 ## Architecture Overview
 
-```
-                      +---------------------------------------+
-                      |       Institutional Portal            |
-                      |  (portal.university.edu / attendance.university.edu)  |
-                      +-------------------+-------------------+
-                                          |
-                        DOM Mutation / XHR & Fetch Probe
-                                          |
-        +---------------------------------v---------------------------------+
-        |                    presensi-extension (v1.5.0)                     |
-        |                                                                   |
-        |  +---------------------+  +-----------------+  +---------------+  |
-        |  | Geolocation Hook    |  | Sensor Fusion   |  | Network Proxy |  |
-        |  | - Box-Muller Jitter |  | - Tremor Synth  |  | - XHR Sniffer |  |
-        |  | - True Bearing      |  | - Gravity Vec   |  | - Fetch Proxy |  |
-        |  +---------------------+  +-----------------+  +---------------+  |
-        |                                                                   |
-        |  +---------------------+  +-----------------+  +---------------+  |
-        |  | Anti-Fingerprint    |  | Timetable Match |  | i18n Engine   |  |
-        |  | - WebRTC Candidate  |  | - Slot Auto-Set |  | - EN / ID     |  |
-        |  | - Canvas MicroNoise |  | - Room Detector |  | - Parity 100% |  |
-        |  +---------------------+  +-----------------+  +---------------+  |
-        +---------------------------------^---------------------------------+
-                                          |
-                      WebRTC DataChannel / BroadcastChannel / KV
-                                          |
-                      +-------------------+-------------------+
-                      |      Swarm Mesh Relay (Worker + KV)   |
-                      |     P2P Leader-Follower OTP Sync      |
-                      +---------------------------------------+
+```mermaid
+flowchart TD
+    subgraph Target["Target Attendance System"]
+        Portal["Institutional Attendance Portal<br/>(e.g., portal.university.edu)"]
+    end
+
+    Portal -->|"DOM Mutation / XHR & Fetch Probe"| Core
+
+    subgraph Ext["presensi-extension (v1.5.0)"]
+        direction TB
+        Core["Extension Runtime Controller"]
+        
+        subgraph Group1["Sensory & Network Hooks"]
+            direction LR
+            Geo["Geolocation Hook<br/>• Box-Muller Jitter<br/>• True Bearing"]
+            Sensor["Sensor Fusion<br/>• Tremor Synth<br/>• Gravity Vector"]
+            Net["Network Proxy<br/>• XHR Sniffer<br/>• Fetch Proxy"]
+        end
+
+        subgraph Group2["Defenses & Scheduling"]
+            direction LR
+            AF["Anti-Fingerprint<br/>• WebRTC Candidate<br/>• Canvas MicroNoise"]
+            TT["Timetable Match<br/>• Slot Auto-Set<br/>• Room Detector"]
+            I18N["i18n Engine<br/>• EN / ID<br/>• Parity 100%"]
+        end
+
+        Core --- Group1
+        Core --- Group2
+    end
+
+    Ext -->|"WebRTC DataChannel / BroadcastChannel / KV"| Mesh
+
+    subgraph Mesh["Swarm Mesh Relay (Worker + KV)"]
+        Relay["P2P Leader-Follower OTP Sync<br/>Zero-Latency Cross-Tab Distribution"]
+    end
 ```
 
 ---
@@ -52,7 +57,7 @@
 - **Target Endpoint Probing**: Dispatches background probes (`GET /api/presensi/tm/{tmKey}/kode`) using active session credentials.
 - **In-Flight Mutation Sniffing**: Deep proxies on `window.fetch` and `XMLHttpRequest.prototype` intercept all student attendance mutations (`/api/presensi/tm/.../mahasiswa`), extracting 6-digit OTP codes and rewriting payload coordinates.
 - **Form & DOM Auto-Fill**: Automatically discovers attendance modal fields (`.chakra-modal__content input`, `[role="dialog"]`), writes the code using native prototype setters to trigger React revalidation cycles, and selects the offline presence radio button (`hadirTatapMuka = 'L'`).
-- **Sibling Subdomain Resolution**: Automatically recognizes and binds to related institutional subdomains (e.g. `portal.university.edu` matches `attendance.university.edu`).
+- **Sibling Subdomain Resolution**: Automatically recognizes and binds to related institutional subdomains (e.g. `attendance.university.edu` matches `portal.university.edu`).
 
 ### 3. Swarm Mesh Networking
 - **Leader-Follower Topology**: Cloudflare Worker with KV state coordinates connected peers. The first active peer harvesting a session code broadcasts it across the swarm.

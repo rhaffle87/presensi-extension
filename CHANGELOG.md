@@ -22,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Autonomous Endpoint Prober**: Dispatches `GET /api/presensi/tm/{tmKey}/kode` with active session cookies and captured authorization tokens on poller ticks.
 - **In-Flight Network Interception**: Proxies on `fetch` and `XMLHttpRequest.prototype` capture outgoing `/api/presensi/tm/.../mahasiswa` mutations (`/self`, `/{id_mhs}`, `/batch`), extracting OTP codes from JSON and `FormData` payloads while injecting spoofed coordinates.
 - **Modal Auto-Fill & Radio Selection**: Automatically injects recovered 6-digit codes into Chakra UI dialogs using native prototype setters and selects the offline presence radio (`hadirTatapMuka = 'L'`).
-- **Sibling Subdomain Matching**: Automatically resolves related institutional portals (e.g. `portal.university.edu` matches `attendance.university.edu`) via apex domain extraction.
+- **Sibling Subdomain Matching**: Automatically resolves related institutional portals (e.g. `attendance.university.edu` matches `portal.university.edu`) via apex domain extraction.
 - **Unit Test Suite 20**: Comprehensive regression tests covering code extraction, coordinate rewriting, and mesh broadcast payloads (20 suites, 52 assertions).
 
 ### Fixed
