@@ -20,7 +20,6 @@ The Extension requests only the minimum permissions necessary for its primary fu
 
 - **`storage`**: Used to save your selected campus coordinates, custom presets, weekly timetable rules, and theme preferences locally on your machine.
 - **`activeTab` / `scripting`**: Used to inject the mock geolocation sensor script and verify whether the current web page is your designated university attendance portal.
-- **`geolocation`**: Allows the extension popup's "Use My Real Location" button to determine your current baseline coordinates upon explicit button click.
 - **`declarativeNetRequest` / `declarativeNetRequestWithHostAccess`**: Used exclusively when the user selects mobile device spoofing (e.g. Android or iOS) to synchronize the outgoing HTTP `User-Agent` header for the portal.
 - **`alarms` / `notifications`**: Used for autonomous background checks during Indonesian academic hours (06:30 - 18:30 WIB) to notify the user if an active attendance window is open on the portal.
 - **`host_permissions`**:
