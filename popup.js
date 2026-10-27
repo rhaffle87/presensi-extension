@@ -522,7 +522,10 @@ function storageGet(keys) {
   });
 }
 
+let _localWriteTs = 0;
+
 function storageSet(data) {
+  _localWriteTs = Date.now();
   return new Promise((resolve, reject) => {
     chrome.storage.local.set(data, () => {
       if (chrome.runtime.lastError) {
@@ -1145,6 +1148,8 @@ function showToast(msg, isError = false, duration = 2800, onClick = null) {
 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
+    // Suppress self-triggered storage event echo from this popup
+    if (Date.now() - _localWriteTs < 350) return;
     if (changes[K.enabled]) {
       enableToggle.checked = changes[K.enabled].newValue === true;
     }

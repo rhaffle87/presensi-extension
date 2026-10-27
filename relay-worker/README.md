@@ -8,6 +8,7 @@ A high-performance serverless relay backing the peer-to-peer Swarm Mesh and anon
 - **Stateless & Scalable**: Runs on Cloudflare Edge workers with KV storage.
 - **Dynamic CORS & Method Whitelisting**: Allows cross-origin calls from browser extension runtimes and authorized web contexts.
 - **Sliding-Window Rate Limiting**: Enforces a per-IP threshold of 60 requests/minute to prevent brute-force attacks and denial-of-service.
+  > *Note on Isolate Execution*: The rate limiter runs in-memory per Cloudflare V8 isolate. This design intentionally preserves Cloudflare KV write quotas on the free tier. For massive enterprise-scale deployments, a Cloudflare Rate Limiting binding (`ratelimits` in `wrangler.toml`) can be enabled.
 - **Anti-Replay Protection**: Rejects state-modifying requests with timestamps older than 5 minutes (`300,000ms`).
 - **Input Validation**: Sanitizes identifier keys, checks 6-digit OTP formats, and verifies payload schemas.
 - **Automatic TTL Expiration**:

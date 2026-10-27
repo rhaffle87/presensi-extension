@@ -52,7 +52,10 @@ function storageGet(keys) {
   });
 }
 
+let _localWriteTs = 0;
+
 function storageSet(data) {
+  _localWriteTs = Date.now();
   return new Promise((resolve, reject) => {
     chrome.storage.local.set(data, () => {
       if (chrome.runtime.lastError) return reject(chrome.runtime.lastError);
@@ -631,6 +634,8 @@ if (importBackupBtn && importFileInput) {
 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
+    // Suppress self-triggered storage event echo from this tab
+    if (Date.now() - _localWriteTs < 350) return;
     if (changes[K.lat] && optLat && document.activeElement !== optLat) {
       optLat.value = changes[K.lat].newValue || '';
     }
