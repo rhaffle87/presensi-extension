@@ -58,6 +58,7 @@ export default [
         Buffer: "readonly",
         I18N: "readonly",
         BroadcastChannel: "readonly",
+        crypto: "readonly",
         L: "readonly"
       }
     },

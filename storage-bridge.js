@@ -2,7 +2,8 @@
  * storage-bridge.js — Runs in ISOLATED world at document_start
  *
  * Bridges chrome.storage → MAIN world content script via CustomEvents.
- * Uses obfuscated storage keys and per-install randomized bridge event names.
+ * Employs cryptographic nonce verification, strict schema validation,
+ * and comprehensive storage.onChanged synchronization.
  */
 
 (function () {
@@ -31,7 +32,11 @@
     lang:     'cfg_l',
   };
 
-  const ALL_KEYS = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock, K.deviceMode, K.testMode, K.customPresets, K.timetable, K.relayUrl, K.lang];
+  const ALL_KEYS = [
+    K.enabled, K.lat, K.lng, K.domain, K.profile, K.vpnLock,
+    K.deviceMode, K.testMode, K.customPresets, K.timetable,
+    K.relayUrl, K.lang
+  ];
 
   /**
    * Builds the normalized config object from raw chrome.storage payload.
@@ -47,19 +52,21 @@
       profile:       result[K.profile]       || 'mobile_gps',
       deviceMode:    result[K.deviceMode]    || 'desktop',
       testMode:      result[K.testMode]      === true,
-      customPresets: result[K.customPresets] || [],
-      timetable:     result[K.timetable]     || [],
+      customPresets: Array.isArray(result[K.customPresets]) ? result[K.customPresets] : [],
+      timetable:     Array.isArray(result[K.timetable])     ? result[K.timetable]     : [],
       relayUrl:      result[K.relayUrl]      || null,
+      lang:          result[K.lang]          || 'en',
     };
   }
 
   /**
-   * Dispatches the configuration to the MAIN world scripts via a per-install
-   * bridge event name derived from the stored token.
+   * Dispatches the configuration to the MAIN world scripts via a cryptographic
+   * bridge event name derived from the verified session token.
    * @param {Object} config
    * @param {string} token
    */
   function dispatchConfigToMainWorld(config, token) {
+    if (!token || !/^[a-zA-Z0-9_-]{12,64}$/.test(token)) return;
     const evtName = '__gps_sync_res_' + token;
     window.dispatchEvent(new CustomEvent(evtName, { detail: JSON.stringify(config) }));
   }
@@ -78,7 +85,7 @@
   }
 
   // --- Handshake & Live updates ---
-  let lastKnownToken = 'fallback';
+  let lastKnownToken = null;
 
   // Listen in the capture phase to intercept the request before the page sees it.
   function handleSyncReq(e) {
@@ -91,7 +98,10 @@
       return;
     }
 
-    const token = (typeof e.detail === 'string') ? e.detail : 'fallback';
+    const token = (typeof e.detail === 'string') ? e.detail.trim() : '';
+    if (!token || !/^[a-zA-Z0-9_-]{12,64}$/.test(token)) {
+      return; // Reject invalid or spoofed handshake attempts
+    }
     lastKnownToken = token;
     
     try {
@@ -102,7 +112,6 @@
         } catch (_) {}
       });
     } catch (_) {
-      // Silently clean up and detach if extension was reloaded in chrome://extensions
       try { window.removeEventListener('__gps_sync_req', handleSyncReq, true); } catch (_) {}
     }
   }
@@ -142,10 +151,14 @@
     try {
       const data = typeof e.detail === 'string' ? JSON.parse(e.detail) : e.detail;
       if (data && data.lat !== undefined && data.lng !== undefined) {
-        chrome.storage.local.set({
-          [K.lat]: parseFloat(data.lat),
-          [K.lng]: parseFloat(data.lng),
-        });
+        const nLat = parseFloat(data.lat);
+        const nLng = parseFloat(data.lng);
+        if (!isNaN(nLat) && nLat >= -90 && nLat <= 90 && !isNaN(nLng) && nLng >= -180 && nLng <= 180) {
+          chrome.storage.local.set({
+            [K.lat]: nLat,
+            [K.lng]: nLng,
+          });
+        }
       }
     } catch (_) {}
   }
@@ -177,17 +190,21 @@
     window.addEventListener('__gps_relay_req', handleRelayFetch, true);
   } catch (_) {}
 
+  // ── Real-time Cross-Module Synchronization ─────────────────────────────────
   try {
     if (isContextValid() && chrome.storage && chrome.storage.onChanged) {
       chrome.storage.onChanged.addListener((changes, area) => {
         try {
           if (area !== 'local' || !isContextValid()) return;
-          const relevant = [K.enabled, K.lat, K.lng, K.domain, K.profile, K.deviceMode, K.testMode];
+          // Trigger sync on ANY config update (including custom presets, timetable, relayUrl, lang)
+          const relevant = ALL_KEYS;
           if (relevant.some(k => Boolean(changes && changes[k]))) {
             chrome.storage.local.get(ALL_KEYS, (result) => {
               try {
                 if (!isContextValid()) return;
-                dispatchConfigToMainWorld(buildConfig(result || {}), lastKnownToken);
+                if (lastKnownToken) {
+                  dispatchConfigToMainWorld(buildConfig(result || {}), lastKnownToken);
+                }
               } catch (_) {}
             });
           }

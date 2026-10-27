@@ -35,8 +35,6 @@ const manageLink  = document.getElementById('manageLink');
 if (manageLink && chrome.runtime.id) {
   manageLink.addEventListener('click', (e) => {
     e.preventDefault();
-    // chrome://extensions is Chromium-only. Firefox uses about:addons.
-    // chrome.runtime.openOptionsPage and chrome.tabs.create work on both.
     if (typeof globalThis !== 'undefined' && globalThis.__extIsFirefox) {
       chrome.tabs.create({ url: 'about:addons' });
     } else {
@@ -160,26 +158,54 @@ async function renderSubmissionLog() {
   });
 }
 
-function isValidCoord(val) {
+function isValidLat(val) {
+  if (val === null || val === undefined || String(val).trim() === '') return false;
+  const n = Number(val);
+  return !isNaN(n) && isFinite(n) && n >= -90 && n <= 90;
+}
+
+function isValidLng(val) {
+  if (val === null || val === undefined || String(val).trim() === '') return false;
+  const n = Number(val);
+  return !isNaN(n) && isFinite(n) && n >= -180 && n <= 180;
+}
+
+function isValidUrl(val) {
+  if (!val || String(val).trim() === '') return true;
+  try {
+    const u = new URL(val.trim());
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch (_) {
+    return false;
+  }
+}
+
+function _isValidCoord(val) {
   if (!val || String(val).trim() === '') return false;
   const n = Number(val);
-  return !isNaN(n);
+  return !isNaN(n) && isFinite(n) && n >= -180 && n <= 180;
 }
 
 saveBtn.addEventListener('click', async () => {
-  const lat    = optLat.value.trim();
-  const lng    = optLng.value.trim();
-  const domain = optDomain.value.trim();
-  const theme  = optTheme.value;
+  const lat      = optLat.value.trim();
+  const lng      = optLng.value.trim();
+  const domain   = optDomain.value.trim();
+  const theme    = optTheme.value;
+  const relayUrl = optRelayUrl ? optRelayUrl.value.trim() : '';
 
-  if (lat && !isValidCoord(lat)) {
-    alert('Invalid default latitude');
+  if (lat && !isValidLat(lat)) {
+    alert('Invalid default latitude (-90 to 90)');
     optLat.focus();
     return;
   }
-  if (lng && !isValidCoord(lng)) {
-    alert('Invalid default longitude');
+  if (lng && !isValidLng(lng)) {
+    alert('Invalid default longitude (-180 to 180)');
     optLng.focus();
+    return;
+  }
+  if (relayUrl && !isValidUrl(relayUrl)) {
+    alert('Invalid Relay Worker URL. Must begin with http:// or https://');
+    optRelayUrl.focus();
     return;
   }
 
@@ -188,7 +214,7 @@ saveBtn.addEventListener('click', async () => {
     [K.lng]: lng,
     [K.theme]: theme,
     [K.domain]: domain,
-    [K.relayUrl]: optRelayUrl ? optRelayUrl.value.trim() : '',
+    [K.relayUrl]: relayUrl,
     [K.vpnLock]: optVpnLock ? optVpnLock.checked : true,
     [K.deviceMode]: optDevice ? optDevice.value : 'desktop',
     [K.testMode]: optTestMode ? optTestMode.checked : false,
@@ -598,6 +624,38 @@ if (importBackupBtn && importFileInput) {
       }
     };
     reader.readAsText(file);
+  });
+}
+
+// ── Real-time Cross-Tab Storage Observer ─────────────────────────────────────
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes[K.lat] && optLat && document.activeElement !== optLat) {
+      optLat.value = changes[K.lat].newValue || '';
+    }
+    if (changes[K.lng] && optLng && document.activeElement !== optLng) {
+      optLng.value = changes[K.lng].newValue || '';
+    }
+    if (changes[K.domain] && optDomain && document.activeElement !== optDomain) {
+      optDomain.value = changes[K.domain].newValue || '';
+    }
+    if (changes[K.relayUrl] && optRelayUrl && document.activeElement !== optRelayUrl) {
+      optRelayUrl.value = changes[K.relayUrl].newValue || '';
+    }
+    if (changes[K.customPresets]) {
+      renderCustomPresets();
+    }
+    if (changes[K.timetable]) {
+      renderTimetable();
+    }
+    if (changes[K.log]) {
+      renderSubmissionLog();
+    }
+    if (changes[K.theme]) {
+      setTheme(changes[K.theme].newValue || 'system');
+      if (optTheme) optTheme.value = changes[K.theme].newValue || 'system';
+    }
   });
 }
 

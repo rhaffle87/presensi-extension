@@ -291,6 +291,18 @@ async function appendLog(entry) {
 let map = null;
 let marker = null;
 
+// Neutralize Leaflet default image resolution to avoid 404s inside chrome-extension:// scheme
+if (typeof L !== 'undefined' && L.Icon && L.Icon.Default) {
+  try {
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: '',
+      iconUrl: '',
+      shadowUrl: ''
+    });
+  } catch (_) {}
+}
+
 const customIcon = L.divIcon({
   html: `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent); filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.5));"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3" fill="var(--surface)"/></svg>`,
   className: '',
@@ -882,13 +894,13 @@ saveBtn.addEventListener('click', async () => {
   const lng      = lngInput.value.trim();
   const enabled  = enableToggle.checked;
 
-  if (!isValidCoord(lat)) {
-    showToast('Invalid latitude', true);
+  if (!isValidLat(lat)) {
+    showToast('Invalid latitude (-90 to 90)', true);
     latInput.focus();
     return;
   }
-  if (!isValidCoord(lng)) {
-    showToast('Invalid longitude', true);
+  if (!isValidLng(lng)) {
+    showToast('Invalid longitude (-180 to 180)', true);
     lngInput.focus();
     return;
   }
@@ -1013,10 +1025,22 @@ if (vpnLinkBtn) {
 }
 
 // ── Helpers ──────────────────────────────────────────
-function isValidCoord(val) {
-  if (!val || String(val).trim() === '') return false;
+function isValidLat(val) {
+  if (val === null || val === undefined || String(val).trim() === '') return false;
   const n = parseFloat(val);
-  return !isNaN(n) && isFinite(n);
+  return !isNaN(n) && isFinite(n) && n >= -90 && n <= 90;
+}
+
+function isValidLng(val) {
+  if (val === null || val === undefined || String(val).trim() === '') return false;
+  const n = parseFloat(val);
+  return !isNaN(n) && isFinite(n) && n >= -180 && n <= 180;
+}
+
+function isValidCoord(val) {
+  if (val === null || val === undefined || String(val).trim() === '') return false;
+  const n = parseFloat(val);
+  return !isNaN(n) && isFinite(n) && n >= -180 && n <= 180;
 }
 
 function updateStatus(enabled, lat, lng) {
@@ -1115,4 +1139,39 @@ function showToast(msg, isError = false, duration = 2800, onClick = null) {
   toast.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+// ── Real-time Cross-Module Storage Observer ──────────────────────────────────
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes[K.enabled]) {
+      enableToggle.checked = changes[K.enabled].newValue === true;
+    }
+    if (changes[K.lat] || changes[K.lng]) {
+      const newLat = changes[K.lat] ? String(changes[K.lat].newValue) : latInput.value;
+      const newLng = changes[K.lng] ? String(changes[K.lng].newValue) : lngInput.value;
+      if (document.activeElement !== latInput) latInput.value = newLat;
+      if (document.activeElement !== lngInput) lngInput.value = newLng;
+      updateStatus(enableToggle.checked, newLat, newLng);
+      updateMap(newLat, newLng);
+      detectActivePreset(newLat, newLng);
+    }
+    if (changes[K.theme]) {
+      const t = changes[K.theme].newValue || 'system';
+      document.documentElement.setAttribute('data-theme', t);
+      if (themeSelect) themeSelect.value = t;
+    }
+    if (changes[K.lang]) {
+      const newLang = changes[K.lang].newValue;
+      if (newLang && typeof I18N !== 'undefined') {
+        I18N.setLang(newLang);
+        I18N.applyToDOM();
+        if (langSelect) langSelect.value = newLang;
+      }
+    }
+    if (changes[K.customPresets]) {
+      loadCustomPresets();
+    }
+  });
 }

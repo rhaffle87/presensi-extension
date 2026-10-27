@@ -29,8 +29,47 @@ const DIRS_TO_COPY = [
   'background'  // service-worker.js isn't obfuscated to prevent breaking MV3 registration
 ];
 
+function syncVersions(baseDir = __dirname) {
+  const pkgPath = path.join(baseDir, 'package.json');
+  const manifestPath = path.join(baseDir, 'manifest.json');
+  const lockPath = path.join(baseDir, 'package-lock.json');
+
+  if (!fs.existsSync(pkgPath) || !fs.existsSync(manifestPath)) return null;
+
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+  const targetVersion = pkg.version;
+  let updated = false;
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  if (manifest.version !== targetVersion) {
+    console.log(`  Syncing manifest.json version (${manifest.version} -> ${targetVersion})`);
+    manifest.version = targetVersion;
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+    updated = true;
+  }
+
+  if (fs.existsSync(lockPath)) {
+    const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+    if (lock.version !== targetVersion || (lock.packages && lock.packages[''] && lock.packages[''].version !== targetVersion)) {
+      console.log(`  Syncing package-lock.json version (${lock.version} -> ${targetVersion})`);
+      lock.version = targetVersion;
+      if (lock.packages && lock.packages['']) {
+        lock.packages[''].version = targetVersion;
+      }
+      fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2) + '\n', 'utf8');
+      updated = true;
+    }
+  }
+
+  return { targetVersion, updated };
+}
+
 async function build() {
   console.log('Starting build process...');
+
+  // 0. Version synchronization & validation
+  console.log('Validating version consistency...');
+  syncVersions(__dirname);
 
   // 1. Clean and create output directory
   if (fs.existsSync(OUT_DIR)) {
@@ -252,7 +291,16 @@ async function packCrx() {
   }
 }
 
-build().catch(err => {
-  console.error('Build failed:', err);
-  process.exit(1);
-});
+if (require.main === module) {
+  build().catch(err => {
+    console.error('Build failed:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  build,
+  syncVersions,
+  FILES_TO_COPY,
+  DIRS_TO_COPY
+};

@@ -84,6 +84,7 @@ presensi-extension/
 │   ├── options.html           # Full settings dashboard, timetable, preset manager
 │   └── options.js             # Options logic, backup/restore, CSV export
 ├── relay-worker/
+│   ├── README.md              # Worker architecture, deployment guide, API contract
 │   ├── wrangler.toml          # Cloudflare Worker deployment manifest
 │   └── worker.js              # KV-backed Mesh Relay, leader election, anti-replay
 ├── test/
@@ -91,7 +92,7 @@ presensi-extension/
 │   │   ├── e2e.test.js        # Browser runtime and DOM integration suite
 │   │   └── test-server.js     # Mock portal server with Chakra UI elements
 │   ├── unit/
-│   │   └── spoof-logic.test.js# 20 test suites (52 assertions)
+│   │   └── spoof-logic.test.js# 23 test suites (61 assertions)
 │   ├── probe-all.js           # Full relay & configuration auditor
 │   └── probe-target-domain.js # Target domain SSL, HSTS, and header probe
 ├── build.js                   # Packaging engine, obfuscation, zip/crx compiler

@@ -917,7 +917,17 @@
   }
 
   // ── Phase 4: Dynamic Bridge Handshake ─────────────────────────────────────
-  const sessionToken = Math.random().toString(36).substring(2, 15);
+  let sessionToken = '';
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      sessionToken = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+    }
+  } catch (_) {}
+  if (!sessionToken) {
+    sessionToken = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  }
   const reqEvent = '__gps_sync_req';
   const resEvent = '__gps_sync_res_' + sessionToken;
 

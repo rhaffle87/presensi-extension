@@ -719,6 +719,169 @@ describe('20. Autonomous Attendance Code Retrieval & Mesh Broadcast Contract', (
   });
 });
 
+describe('21. Storage Bridge Config Normalization & Nonce Contract', () => {
+  const K = {
+    enabled: 'cfg_e',
+    lat:     'cfg_a',
+    lng:     'cfg_o',
+    domain:  'cfg_d',
+    profile: 'cfg_ap',
+    vpnLock: 'cfg_vl',
+    deviceMode: 'cfg_dm',
+    testMode: 'cfg_tm',
+    customPresets: 'cfg_cp',
+    timetable: 'cfg_tt',
+    relayUrl: 'cfg_ru',
+    lang:     'cfg_l',
+  };
+
+  function buildConfig(result) {
+    return {
+      enabled: result[K.enabled] === true,
+      lat:     result[K.lat]     || null,
+      lng:     result[K.lng]     || null,
+      targetDomain:  result[K.domain]        || 'portal.university.edu',
+      profile:       result[K.profile]       || 'mobile_gps',
+      deviceMode:    result[K.deviceMode]    || 'desktop',
+      testMode:      result[K.testMode]      === true,
+      customPresets: Array.isArray(result[K.customPresets]) ? result[K.customPresets] : [],
+      timetable:     Array.isArray(result[K.timetable])     ? result[K.timetable]     : [],
+      relayUrl:      result[K.relayUrl]      || null,
+      lang:          result[K.lang]          || 'en',
+    };
+  }
+
+  function isValidSessionToken(token) {
+    return Boolean(token && typeof token === 'string' && /^[a-zA-Z0-9_-]{12,64}$/.test(token.trim()));
+  }
+
+  test('Correctly extracts and normalizes raw storage map into config object', () => {
+    const rawStorage = {
+      [K.enabled]: true,
+      [K.lat]: '-7.285',
+      [K.lng]: '112.795',
+      [K.domain]: 'portal.university.edu',
+      [K.customPresets]: [{ name: 'Room 101', lat: -7.28, lng: 112.79 }],
+      [K.relayUrl]: 'https://relay.workers.dev',
+      [K.lang]: 'id'
+    };
+
+    const cfg = buildConfig(rawStorage);
+    assert.strictEqual(cfg.enabled, true);
+    assert.strictEqual(cfg.lat, '-7.285');
+    assert.strictEqual(cfg.lng, '112.795');
+    assert.strictEqual(cfg.targetDomain, 'portal.university.edu');
+    assert.strictEqual(cfg.customPresets.length, 1);
+    assert.strictEqual(cfg.relayUrl, 'https://relay.workers.dev');
+    assert.strictEqual(cfg.lang, 'id');
+  });
+
+  test('Provides sensible safe defaults when storage keys are missing', () => {
+    const cfg = buildConfig({});
+    assert.strictEqual(cfg.enabled, false);
+    assert.strictEqual(cfg.lat, null);
+    assert.strictEqual(cfg.lng, null);
+    assert.strictEqual(cfg.targetDomain, 'portal.university.edu');
+    assert.strictEqual(cfg.profile, 'mobile_gps');
+    assert.strictEqual(cfg.deviceMode, 'desktop');
+    assert.strictEqual(cfg.testMode, false);
+    assert.deepStrictEqual(cfg.customPresets, []);
+    assert.deepStrictEqual(cfg.timetable, []);
+    assert.strictEqual(cfg.relayUrl, null);
+    assert.strictEqual(cfg.lang, 'en');
+  });
+
+  test('Validates cryptographic session nonces and rejects malicious or malformed tokens', () => {
+    assert.strictEqual(isValidSessionToken('a1b2c3d4e5f6g7h8'), true);
+    assert.strictEqual(isValidSessionToken('e9f90ad467ef24ba014d59a2cbe91204'), true);
+    assert.strictEqual(isValidSessionToken('short'), false);
+    assert.strictEqual(isValidSessionToken('token with spaces'), false);
+    assert.strictEqual(isValidSessionToken('<script>alert(1)</script>'), false);
+    assert.strictEqual(isValidSessionToken(null), false);
+  });
+});
+
+describe('22. Build Script Version Synchronization & Packaging Rules', () => {
+  const { syncVersions, FILES_TO_COPY, DIRS_TO_COPY } = require(path.join(rootDir, 'build.js'));
+
+  test('FILES_TO_COPY includes core runtime bridges, manifests, and documentation', () => {
+    const requiredFiles = ['manifest.json', 'popup.html', 'compat.js', 'i18n.js', 'storage-bridge.js', 'README.md'];
+    requiredFiles.forEach(f => {
+      assert.ok(FILES_TO_COPY.includes(f), `FILES_TO_COPY missing required asset: ${f}`);
+    });
+  });
+
+  test('DIRS_TO_COPY includes options, icons, background, and lib directories', () => {
+    const requiredDirs = ['icons', 'options', 'lib', 'background'];
+    requiredDirs.forEach(d => {
+      assert.ok(DIRS_TO_COPY.includes(d), `DIRS_TO_COPY missing required directory: ${d}`);
+    });
+  });
+
+  test('syncVersions detects and reports current root package version', () => {
+    const res = syncVersions(rootDir);
+    assert.ok(res);
+    assert.ok(res.targetVersion);
+    const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
+    assert.strictEqual(res.targetVersion, pkg.version);
+  });
+});
+
+describe('23. UI Boundary & Format Validator Suite', () => {
+  function isValidLat(val) {
+    if (val === null || val === undefined || String(val).trim() === '') return false;
+    const n = Number(val);
+    return !isNaN(n) && isFinite(n) && n >= -90 && n <= 90;
+  }
+
+  function isValidLng(val) {
+    if (val === null || val === undefined || String(val).trim() === '') return false;
+    const n = Number(val);
+    return !isNaN(n) && isFinite(n) && n >= -180 && n <= 180;
+  }
+
+  function isValidUrl(val) {
+    if (!val || String(val).trim() === '') return true;
+    try {
+      const u = new URL(val.trim());
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  test('Validates latitudes strictly within [-90, 90]', () => {
+    assert.strictEqual(isValidLat('-7.2852792'), true);
+    assert.strictEqual(isValidLat('0'), true);
+    assert.strictEqual(isValidLat('90'), true);
+    assert.strictEqual(isValidLat('-90'), true);
+    assert.strictEqual(isValidLat('90.0001'), false);
+    assert.strictEqual(isValidLat('-91'), false);
+    assert.strictEqual(isValidLat('invalid'), false);
+    assert.strictEqual(isValidLat(''), false);
+  });
+
+  test('Validates longitudes strictly within [-180, 180]', () => {
+    assert.strictEqual(isValidLng('112.7952975'), true);
+    assert.strictEqual(isValidLng('0'), true);
+    assert.strictEqual(isValidLng('180'), true);
+    assert.strictEqual(isValidLng('-180'), true);
+    assert.strictEqual(isValidLng('180.001'), false);
+    assert.strictEqual(isValidLng('-185'), false);
+    assert.strictEqual(isValidLng('abc'), false);
+  });
+
+  test('Validates HTTP and HTTPS URLs and rejects invalid protocols', () => {
+    assert.strictEqual(isValidUrl('https://presensi-relay.workers.dev'), true);
+    assert.strictEqual(isValidUrl('http://localhost:8787'), true);
+    assert.strictEqual(isValidUrl(''), true); // optional
+    assert.strictEqual(isValidUrl('javascript:alert(1)'), false);
+    assert.strictEqual(isValidUrl('file:///etc/passwd'), false);
+    assert.strictEqual(isValidUrl('not a url'), false);
+  });
+});
+
+
 
 
 
