@@ -117,16 +117,54 @@ presensi-extension/
 
 ---
 
-## Quick Start
+## Installation Guide (Panduan Pemasangan)
 
-### Installation
+### 1. Chromium Desktop (Google Chrome, Brave, Microsoft Edge)
 
-1. Grab `release.zip` or download from [Releases](../../releases/latest).
-2. Extract to a stable local folder.
-3. In Chrome/Brave/Edge, navigate to `chrome://extensions`.
-4. Turn on **Developer mode** (top right).
-5. Click **Load unpacked** and choose the extracted folder.
-6. For step-by-step instructions and Android (Kiwi Browser) setup, refer to [INSTALL.md](INSTALL.md).
+1. **Unduh Paket Rilis**:
+   - Buka halaman [Releases](../../releases/latest) dan unduh file `release.zip` versi terbaru (misal: `v1.5.0`).
+2. **Ekstrak Arsip ZIP**:
+   - Ekstrak file `release.zip` ke folder lokal permanen di komputer Anda (contoh: `D:\Extensions\presensi-extension\`).
+   - *Penting: Jangan simpan di folder unduhan sementara agar browser tidak kehilangan akses saat folder dibersihkan.*
+3. **Akses Halaman Ekstensi**:
+   - Buka browser dan arahkan URL ke:
+     - Google Chrome: `chrome://extensions`
+     - Brave: `brave://extensions`
+     - Microsoft Edge: `edge://extensions`
+4. **Aktifkan Developer Mode**:
+   - Nyalakan saklar **Developer mode** di pojok kanan atas.
+5. **Muat Ekstensi (Load Unpacked)**:
+   - Klik tombol **Load unpacked** di pojok kiri atas.
+   - Pilih direktori hasil ekstraksi yang memuat file `manifest.json`.
+   - Ekstensi **Attendance GPS Spoofer** akan muncul dan siap digunakan.
+6. **Sematkan Ikon Ekstensi (Pin)**:
+   - Klik ikon puzzle (Extensions) pada toolbar browser, lalu klik ikon pin di samping nama ekstensi agar selalu tampil di toolbar.
+
+---
+
+### 2. Android Mobile (Kiwi Browser)
+
+1. **Instal Browser yang Mendukung Ekstensi Chrome**:
+   - Pasang [Kiwi Browser](https://play.google.com/store/apps/details?id=com.kiwibrowser.browser) dari Google Play Store.
+2. **Unduh & Ekstrak `release.zip`**:
+   - Unduh file `release.zip` dari [Releases](../../releases/latest) ke penyimpanan internal perangkat Anda.
+   - Ekstrak file ZIP tersebut menggunakan file manager bawaan atau aplikasi ZArchiver.
+3. **Buka Menu Ekstensi di Kiwi Browser**:
+   - Buka Kiwi Browser, ketuk menu tiga titik (`⋮`) di kanan atas → pilih **Extensions**.
+   - Aktifkan saklar **Developer mode** di bagian atas menu ekstensi.
+4. **Muat Ekstensi**:
+   - Ketuk tombol **Load unpacked** atau **+(from .zip/.crx/.user.js)**.
+   - Arahkan dan pilih folder hasil ekstraksi yang memuat `manifest.json`.
+   - Ekstensi kini aktif dan dapat dibuka langsung melalui menu tiga titik (`⋮`) pada bagian daftar ekstensi paling bawah.
+
+---
+
+### 3. Langkah Penggunaan (Quick Usage)
+
+1. **Buka Popup Ekstensi**: Klik ikon ekstensi di toolbar browser.
+2. **Pilih Lokasi / Presets**: Pilih salah satu preset ruangan kampus yang tersedia atau masukkan koordinat (*Latitude* / *Longitude*) yang diinginkan.
+3. **Aktifkan Master Toggle**: Geser saklar utama ke posisi **ON** untuk mulai memalsukan geolokasi & sensor.
+4. **Buka Portal Presensi**: Arahkan browser ke portal kehadiran institusi Anda (contoh: `https://portal.university.edu/`). Lakukan presensi kehadiran secara normal.
 
 ---
 
